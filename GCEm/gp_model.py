@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
-
+from .model import Model
 from tqdm import tqdm_notebook
 
 
-class GPModel(object):
+class GPModel(Model):
     
     def __init__(self, training_data, name, GPU=0):
         import iris.cube

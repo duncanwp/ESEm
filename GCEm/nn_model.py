@@ -18,6 +18,8 @@ import os
 
 import matplotlib.pyplot as plt
 
+from .model import Model
+
 
 class IrisSequence(Sequence):
 
@@ -157,6 +159,11 @@ learning_rate = 1e-5
 decay_rate = 0.01
 
 # %%
+
+
+class NNModel(Model):
+    # TODO!
+    pass
 
 # build decoder model
 latent_inputs = Input(shape=(N_PARAMS,), name='params')
