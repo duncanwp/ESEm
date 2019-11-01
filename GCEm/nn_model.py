@@ -12,6 +12,7 @@ from keras.optimizers import Adam, RMSprop
 
 from cartopy.util import add_cyclic_point
 
+# TODO - do I really need all of sklearn just for this?
 from sklearn import preprocessing
 import os
 
