@@ -2,8 +2,10 @@
 # conda create -n <name> --file conda-requirements.txt
 
 # Mandatory dependencies
-tensorflow
+tensorflow-gpu
+gpflow
 iris
+tqdm
 
 # build dependencies
 setuptools

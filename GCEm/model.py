@@ -24,21 +24,18 @@ class Model(ABC):
         :param str name: Human readable name for the model
         :param int GPU: The machine GPU to assign this model to
         """
+        import iris.cube
 
-        self.training_data = training_data
+        t_data = training_data.data if isinstance(training_data, iris.cube.Cube) else training_data
+        self.mean_t = t_data.mean(axis=0)
+
+        self.training_data = (t_data - self.mean_t)
+        self.original_shape = training_data.shape
         self.name = name
         self._GPU = GPU
 
-        self._NP_TYPE = np.float64
-        self._tf_graph = tf.Graph()
-        self._tf_sess = tf.Session(graph=self._tf_graph, config=tf.ConfigProto(allow_soft_placement=True,
-                                                                               log_device_placement=True))
-
-        with self._tf_sess.as_default(), self._tf_sess.graph.as_default():
-            self._TF_TYPE = tf.float64
-
     @abstractmethod
-    def fit(self):
+    def train(self, X, params=None, verbose=False):
         """
         Train on the training data
         :return:
