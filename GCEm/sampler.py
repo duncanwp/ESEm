@@ -13,11 +13,14 @@ class Sampler(ABC):
     A class that efficiently samples a Model object for posterior inference
     """
 
-    def __init__(self, model):
+    def __init__(self, model, obs, var_obs=0., log_obs=False):
         """
 
         """
         self.model = model
+        self.log_obs = log_obs
+        self.obs = obs
+        self.var_obs = var_obs
 
     def calibrate(self, objective, prior=None):
         """

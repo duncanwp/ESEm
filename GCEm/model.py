@@ -51,7 +51,7 @@ class Model(ABC):
 
     @property
     @abstractmethod
-    def _sample(self):
+    def _tf_predict(self):
         """
         This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick)
 

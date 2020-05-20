@@ -63,12 +63,13 @@ def get_random_params(n_params, n_samples=5):
     return np.random.uniform(size=n_params*n_samples).reshape(n_samples, n_params)
 
 
-def pop_param(params, idx):
+def pop_elements(params, idx1, idx2=None):
     """
     Select a specific parameter index to remove
     """
-    popped = params[idx:idx+1]
-    new_params = np.vstack((params[:idx], params[idx+1:]))
+    idx2 = idx2 if idx2 is not None else idx1
+    popped = params[idx1:idx2+1]
+    new_params = np.vstack((params[:idx1], params[idx2+1:]))
     return new_params, popped
 
 

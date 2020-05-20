@@ -1,3 +1,4 @@
+import numpy as np
 
 
 def get_white_cube(cube, ref_mean=None, ref_std=None):
@@ -55,7 +56,7 @@ def get_param_mask(X, y, **kwargs):
 
     lsvc = LassoLarsIC(criterion='bic').fit(X, y)
     model = SelectFromModel(lsvc, prefit=True, **kwargs)
-    return model.get_support()
+    return np.where(model.get_support())[0]
 
 
 def add_121_line(ax):

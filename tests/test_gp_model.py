@@ -1,7 +1,15 @@
 import unittest
 from GCEm.gp_model import GPModel
 from tests.mock import *
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_compare
+
+
+def assert_array_less_equal(x, y, err_msg='', verbose=True):
+    import operator
+    assert_array_compare(operator.__le__, x, y, err_msg=err_msg,
+                         verbose=verbose,
+                         header='Arrays are not less-ordered',
+                         equal_inf=False)
 
 
 class GPTest(object):
@@ -34,7 +42,7 @@ class Simple1DTest(unittest.TestCase, GPTest):
 
     @classmethod
     def setUpClass(cls) -> None:
-        params, test = pop_param(get_uniform_params(2), 10)
+        params, test = pop_elements(get_uniform_params(2), 10)
 
         ensemble = get_1d_two_param_cube(params)
         m = GPModel(ensemble)
@@ -53,7 +61,7 @@ class Simple2DTest(unittest.TestCase, GPTest):
 
     @classmethod
     def setUpClass(cls) -> None:
-        params, test = pop_param(get_uniform_params(3), 50)
+        params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_2d_three_param_cube(params)
         m = GPModel(ensemble)
@@ -84,7 +92,9 @@ class SampleTest(unittest.TestCase):
         mean, std_dev = batch_stats(self.m, sample_params)
 
         assert_allclose(mean, expected_ensemble.data.mean(axis=0), rtol=1e-1)
-        assert_allclose(std_dev, expected_ensemble.data.std(axis=0), rtol=1e-1)
+        # This is a really loose test but it needs to be because of the
+        #  stochastic nature of the model and the ensemble points
+        assert_allclose(std_dev, expected_ensemble.data.std(axis=0), rtol=.5)
 
     def test_implausibility_scalar_uncertainty(self):
         # Test the implausibility is correct
@@ -102,6 +112,69 @@ class SampleTest(unittest.TestCase):
                                             interann_uncertainty=0.,
                                             repres_uncertainty=0.,
                                             struct_uncertainty=0.)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be one - on average
+        assert_allclose(implausibility.numpy()[10, :].mean(), 1., rtol=1e-2)
+
+    def test_implausibility_interann(self):
+        # Test the implausibility is correct
+        from GCEm.gp_model import get_implausibility
+
+        obs_uncertainty = 5.
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = get_implausibility(self.m, obs, self.training_params,
+                                            obs_uncertainty=0.,
+                                            interann_uncertainty=obs_uncertainty/obs.data.mean(),
+                                            repres_uncertainty=0.,
+                                            struct_uncertainty=0.)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be one - on average
+        assert_allclose(implausibility.numpy()[10, :].mean(), 1., rtol=1e-2)
+
+    def test_implausibility_repres(self):
+        # Test the implausibility is correct
+        from GCEm.gp_model import get_implausibility
+
+        obs_uncertainty = 5.
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = get_implausibility(self.m, obs, self.training_params,
+                                            obs_uncertainty=0.,
+                                            interann_uncertainty=0.,
+                                            repres_uncertainty=obs_uncertainty/obs.data.mean(),
+                                            struct_uncertainty=0.)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be one - on average
+        assert_allclose(implausibility.numpy()[10, :].mean(), 1., rtol=1e-2)
+
+    def test_implausibility_struct(self):
+        # Test the implausibility is correct
+        from GCEm.gp_model import get_implausibility
+
+        obs_uncertainty = 5.
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = get_implausibility(self.m, obs, self.training_params,
+                                            obs_uncertainty=0.,
+                                            interann_uncertainty=0.,
+                                            repres_uncertainty=0.,
+                                            struct_uncertainty=obs_uncertainty/obs.data.mean())
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
@@ -169,12 +242,53 @@ class SampleTest(unittest.TestCase):
         assert_allclose(imp, np.asarray([np.nan]))
 
     def test_constrain(self):
-        # Test that constrain returns the correct boolean array for the given implausibiltiy and params
-        from GCEm.gp_model import get_implausibility, constrain
+        # Test that constrain returns the correct boolean array for the given implausibility and params
+        from GCEm.gp_model import constrain
+
+        implausibility = np.asarray([[0., 0., 0., 0., 0.],
+                                     [0., 1., 1., 1., 0.],
+                                     [0., 0., 1., 0., 0.]])
+        assert_array_equal(constrain(implausibility, tolerance=0., threshold=3.0),
+                           np.asarray([True, True, True]))
+        assert_array_equal(constrain(implausibility, tolerance=0., threshold=0.5),
+                           np.asarray([True, False, False]))
+        assert_array_equal(constrain(implausibility, tolerance=0., threshold=1.0),
+                           np.asarray([True, True, True]))
+
+        assert_array_equal(constrain(implausibility, tolerance=2./5., threshold=0.5),
+                           np.asarray([True, False, True]))
+        assert_array_equal(constrain(implausibility, tolerance=1./5., threshold=0.5),
+                           np.asarray([True, False, True]))
 
     def test_batch_constrain(self):
-        # Test that constrain returns the correct boolean array for the given implausibiltiy and params
-        from GCEm.gp_model import get_implausibility, batch_constrain
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        from GCEm.gp_model import batch_constrain
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        valid_samples = batch_constrain(self.m, obs, self.training_params,
+                                        obs_uncertainty=obs_uncertainty/obs.data,
+                                        interann_uncertainty=0.,
+                                        repres_uncertainty=0.,
+                                        struct_uncertainty=0.,
+                                        tolerance=0., threshold=2.)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be around one (and hence valid), some neighbouring points are
+        #  also valid, the rest should be invalid
+        expected = np.asarray([True, False, False, True, False,
+                               True, False, False, True, False,
+                               True, False, False, True, True,
+                               True, True, True, True, True,
+                               False, False, False, False, False])
+
+        assert_array_equal(valid_samples.numpy(), expected)
 
 
 if __name__ == '__main__':
