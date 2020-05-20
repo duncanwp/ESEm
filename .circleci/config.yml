@@ -8,9 +8,16 @@ jobs:
     executor: python/default
     steps:
       - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
+      - run: conda config --add channels conda-forge
+      - run: conda config --set always_yes true
+      - run: conda config --set quiet true
+      - run: conda install iris
+      - run:
+          name: Install GCEm
+          command:
+            pip install -U pip
+            pip install -r tests_requirements.txt
+            pip install -e .
       - run:
           command: python -m unittest tests
           name: Test
