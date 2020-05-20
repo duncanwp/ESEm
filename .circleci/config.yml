@@ -20,7 +20,7 @@ jobs:
           command: pytest --junitxml results.xml
           name: Test
       - codecov/upload:
-          file: results.xml
+          file: "results.xml"
 
 workflows:
   main:
