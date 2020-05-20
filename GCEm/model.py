@@ -17,7 +17,7 @@ class Model(ABC):
 
     """
 
-    def __init__(self, training_data, name='', GPU=0):
+    def __init__(self, training_data, name='', GPU=0, dtype=None):
         """
 
         :param iris.cube.Cube training_data: The training data - the leading dimension should represent training samples
@@ -26,10 +26,8 @@ class Model(ABC):
         """
         import iris.cube
 
-        t_data = training_data.data if isinstance(training_data, iris.cube.Cube) else training_data
-        self.mean_t = t_data.mean(axis=0)
-
-        self.training_data = (t_data - self.mean_t)
+        self.training_data = training_data.data if isinstance(training_data, iris.cube.Cube) else training_data
+        self.dtype = dtype if dtype is not None else training_data.dtype
         self.original_shape = training_data.shape
         self.name = name
         self._GPU = GPU

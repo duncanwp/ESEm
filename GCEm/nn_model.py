@@ -21,6 +21,21 @@ import matplotlib.pyplot as plt
 from .model import Model
 
 
+class NN_Model(Model):
+
+    def __init__(self, training_data, name='', GPU=0):
+        """
+
+        :param iris.cube.Cube training_data: The training data - the leading dimension should represent training samples
+        :param str name: Human readable name for the model
+        :param int GPU: The machine GPU to assign this model to
+        """
+        super(NN_Model, self).__init__(training_data=training_data, name=name, GPU=GPU)
+        # Normalise the training data
+        self.mean_t = self.training_data.mean(axis=0)
+        self.training_data = (self.training_data - self.mean_t)
+
+
 class IrisSequence(Sequence):
 
     def __init__(self, x_set, y_set, batch_size=1):

@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from .model import Model
-from tqdm import tqdm_notebook
+from tqdm import tqdm
 
 
 class GPModel(Model):
@@ -32,7 +32,7 @@ class GPModel(Model):
             self.model = gpflow.models.GPR(data=(X, Y_flat), kernel=k)
 
             opt.minimize(self.model.training_loss,
-                         variables=self. model.trainable_variables,
+                         variables=self.model.trainable_variables,
                          options=dict(disp=verbose, maxiter=100))
 
     @tf.function
@@ -82,11 +82,17 @@ class GPModel(Model):
         raise NotImplemented()
 
     def predict(self, *args, **kwargs):
-        m, v = self.model.predict_y(*args, **kwargs)
+        m, v = self._tf_predict(*args, **kwargs)
         # Reshape the output to the original shape (neglecting the param dim)
-        return (m.numpy().reshape(self.original_shape[1:]) + self.mean_t,
+
+        return (m.numpy().reshape(self.original_shape[1:]),
                 v.numpy().reshape(self.original_shape[1:]))
 
+    def _post_process(self):
+        pass
+
+    def _tf_predict(self, *args, **kwargs):
+        return self.model.predict_y(*args, **kwargs)
 
 class GPModel_IC(GPModel):
 
@@ -109,150 +115,143 @@ class ObsConstraint(GPModel):
             self.obs = tf.convert_to_tensor(obs, dtype=self.TF_TYPE)
             self.var_obs = tf.convert_to_tensor(var_obs, dtype=self.TF_TYPE)
 
-    def constrain(self, sample_points, tol=0.5, batch_size=1000):
-        with self.sess.as_default(), self.sess.graph.as_default(), tf.device('/gpu:{}'.format(self.GPU)):
-            sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
-            n_samples = sample_points.shape[0]
-            
-            PROP = tf.constant(0.8, dtype=self.TF_TYPE)  # Proportion of valid samples required
-            TOL = tf.constant(tol, dtype=self.TF_TYPE)  # Proportion of valid samples required
 
-            all_valid_samples = []
+def tf_tqdm(ds):
+    import io
+    # Suppress printing the initial status message - it creates extra newlines, for some reason.
+    bar = tqdm(file=io.StringIO())
 
-            dataset = sample_T.batch(batch_size)
-            # Define iterator
-            iterator = dataset.make_initializable_iterator()
-            # Get one batch
-            next_example = iterator.get_next()
+    def advance_tqdm(e):
+        def fn():
+            bar.update(1)
+            # Print the status update manually.
+            print('\r', end='')
+            print(repr(bar), end='')
+        tf.py_function(fn, [], [])
+        return e
 
-            # Get batch prediction (Note this isn't called yet)
-            m, v = self.model._build_predict(next_example)
-            my, yv = self.model.likelihood.predict_mean_and_var(m, v)
-            
-            # TODO: Consider using yv (the emulator uncertainty) somehow as another source of variance
-            valid_samples = tf.greater(tf.reduce_sum(tf.cast(tf.less(tf.abs(tf.subtract(my, self.obs)),
-                                                                     tf.multiply(self.var_obs, TOL)), dtype=self.TF_TYPE), axis=1),
-                                       tf.multiply(PROP, tf.cast(tf.shape(my)[1], self.TF_TYPE)))
-            
-            constrained_mean = tf.where(valid_samples, my, tf.zeros([batch_size, tf.shape(self.obs)[0]], dtype=self.TF_TYPE))
-
-            # Exponentiate the fields if log obs is true so I return the un-logged means and sd's
-#             my = tf.cond(self.log_obs, lambda: tf.pow(my, tf.constant(10., dtype=self.TF_TYPE)), lambda: my)
-#             constrained_mean = tf.cond(self.log_obs, lambda: tf.pow(constrained_mean, tf.constant(10., dtype=self.TF_TYPE)), lambda: constrained_mean)
-
-            # Get the global mean
-        #     global_mean = tf.reduce_mean(tf.multiply(my, N48_weights_T))
-
-            # Get sum of x and sum of x**2
-            s, s2 = tf.reduce_sum(my, axis=0), tf.reduce_sum(tf.square(my), axis=0)
-            cn, cs, cs2 = tf.reduce_sum(tf.cast(valid_samples, tf.int32), axis=0), tf.reduce_sum(constrained_mean, axis=0), tf.reduce_sum(tf.square(constrained_mean), axis=0)
-
-            self.sess.run(iterator.initializer)
-
-            tot_s, tot_s2, tot_cs, tot_cs2, tot_cn = 0., 0., 0., 0., 0
-        #     global_means = []
-
-            pbar = tqdm_notebook(total=n_samples)
-
-            while True:
-                try:
-                    n_s, n_s2, n_cs, n_cs2, n_cn, batch_valid_samples = self.sess.run([s, s2, cs, cs2, cn, valid_samples])
-                    tot_s += n_s
-                    tot_s2 += n_s2
-                    tot_cs += n_cs
-                    tot_cs2 += n_cs2
-                    tot_cn += n_cn
-                    all_valid_samples.append(batch_valid_samples)
-                    pbar.update(batch_size)
-                except tf.errors.OutOfRangeError:
-                    break
-
-            pbar.close()
-
-        # Calculate the resulting first two moments
-        unconstrained_mean = tot_s / n_samples
-        constrained_mean = tot_cs / tot_cn
-
-        unconstrained_sd = np.sqrt((tot_s2 - (tot_s * tot_s) / n_samples) / (n_samples - 1))
-        constrained_sd = np.sqrt((tot_cs2 - (tot_cs * tot_cs) / tot_cn) / (tot_cn - 1))
-
-        # Squash the list of batches
-        all_valid_samples_arr = np.concatenate(all_valid_samples)
-        return unconstrained_mean, unconstrained_sd, constrained_mean, constrained_sd, all_valid_samples_arr
+    return ds.map(advance_tqdm)
 
 
-def constrain(model, obs, sample_points, tol=0.5, batch_size=1000):
+def constrain(implausibility, tolerance=0., threshold=3.0):
+    """
+        Return a boolean array indicating if each sample meets the implausibility criteria:
+
+            I < T
+
+    :param np.array implausibility: Distance of each sample from each observation (in S.Ds)
+    :param float tolerance: The fraction of samples which are allowed to be over the threshold
+    :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
+    :return np.array: Boolean array of samples which meet the implausibility criteria
+    """
+    # Return True (for a sample) if the number of implausibility measures greater
+    #  than the threshold is less than or equal to the tolerance
+    return np.less_equal(np.sum(np.greater(implausibility, threshold), axis=0), tolerance)
+
+
+def get_implausibility(model, obs, sample_points,
+                       obs_uncertainty=0., interann_uncertainty=0.,
+                       repres_uncertainty=0., struct_uncertainty=0., batch_size=1000):
+    """
+
+    Each of the specified uncertainties are assumed to be normal and are added in quadrature
+
+    NOTE - each of the uncertaintes are 1 sigma as compared to previous versions which assumed 2 sigma
+
+    :param model:
+    :param obs:
+    :param sample_points:
+    :param float obs_uncertainty: Fractional, relative (1 sigma) uncertainty in obervations
+    :param float repres_uncertainty: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
+     representitiveness of the observations
+    :param float interann_uncertainty: Fractional, relative (1 sigma) uncertainty introduced when using a model run
+     for a year other than that the observations were measured in.
+    :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
+    :param int batch_size:
+    :return:
+    """
+
+    #TODO: Could add an absolute uncertainty term here
+
+    # Get the square of the absolute uncertainty and broadcast it across the batch (since it's the same for each sample)
+    observational_var = np.broadcast_to(np.square(obs * obs_uncertainty), (batch_size, obs.shape[0]))
+    respres_var = np.broadcast_to(np.square(obs * repres_uncertainty), (batch_size, obs.shape[0]))
+    interann_var = np.broadcast_to(np.square(obs * interann_uncertainty), (batch_size, obs.shape[0]))
+    struct_var = np.broadcast_to(np.square(obs * struct_uncertainty), (batch_size, obs.shape[0]))
+
+    implausibility = _calc_implausibility(model, obs, sample_points,
+                                          observational_var, interann_var,
+                                          respres_var, struct_var, batch_size=batch_size)
+    # TODO: I could return this as a cube for easier plotting
+
+    return implausibility
+
+
+@tf.function
+def _calc_implausibility(model, obs, sample_points,
+                         observational_var, interann_var,
+                         respres_var, struct_var, batch_size=1000):
+    """
+
+    Each of the specified uncertainties are assumed to be normal and are added in quadrature
+
+    NOTE - each of the uncertaintes are 1 sigma as compared to previous versions which assumed 2 sigma
+
+    :param model:
+    :param Tensor obs:
+    :param Tensor sample_points:
+    :param Tensor observational_var: Variance in obervations
+    :param Tensor respres_var: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
+     representitiveness of the observations
+    :param Tensor interann_var: Fractional, relative (1 sigma) uncertainty introduced when using a model run
+     for a year other than that the observations were measured in.
+    :param Tensor struct_var: Fractional, relative (1 sigma) uncertainty in the model itself.
+    :param int batch_size:
+    :return:
+    """
     with tf.device('/gpu:{}'.format(model._GPU)):
+
         sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
-        n_samples = sample_points.shape[0]
-
-        PROP = tf.constant(0.8, dtype=self.TF_TYPE)  # Proportion of valid samples required
-        TOL = tf.constant(tol, dtype=self.TF_TYPE)  # Proportion of valid samples required
-
-        all_valid_samples = []
 
         dataset = sample_T.batch(batch_size)
-        # Define iterator
-        iterator = dataset.make_initializable_iterator()
-        # Get one batch
-        next_example = iterator.get_next()
 
-        # Get batch prediction (Note this isn't called yet)
-        m, v = self.model._build_predict(next_example)
-        my, yv = self.model.likelihood.predict_mean_and_var(m, v)
+        all_implausibility = tf.zeros((0, ), dtype=tf.bool)
 
-        # TODO: Consider using yv (the emulator uncertainty) somehow as another source of variance
-        valid_samples = tf.greater(tf.reduce_sum(tf.cast(tf.less(tf.abs(tf.subtract(my, self.obs)),
-                                                                 tf.multiply(self.var_obs, TOL)),
-                                                         dtype=self.TF_TYPE), axis=1),
-                                   tf.multiply(PROP, tf.cast(tf.shape(my)[1], self.TF_TYPE)))
+        for data in tf_tqdm(dataset):
+            # Get batch prediction (Note this isn't called yet)
+            m, v = model.model.predict_y(data)
+            emulator_mean, emulator_var = model.model.likelihood.predict_mean_and_var(m, v)
 
-        constrained_mean = tf.where(valid_samples, my,
-                                    tf.zeros([batch_size, tf.shape(self.obs)[0]], dtype=self.TF_TYPE))
+            tot_sd = tf.sqrt(tf.add_n([emulator_var, observational_var, respres_var, interann_var, struct_var]))
+            implausibility = tf.divide(tf.abs(tf.subtract(emulator_mean, obs)), tot_sd)
 
-        # Exponentiate the fields if log obs is true so I return the un-logged means and sd's
-        #             my = tf.cond(self.log_obs, lambda: tf.pow(my, tf.constant(10., dtype=self.TF_TYPE)), lambda: my)
-        #             constrained_mean = tf.cond(self.log_obs, lambda: tf.pow(constrained_mean, tf.constant(10., dtype=self.TF_TYPE)), lambda: constrained_mean)
+            all_implausibility = tf.concat([all_implausibility, implausibility], 0)
 
-        # Get the global mean
-        #     global_mean = tf.reduce_mean(tf.multiply(my, N48_weights_T))
+    return all_implausibility
 
-        # Get sum of x and sum of x**2
-        s, s2 = tf.reduce_sum(my, axis=0), tf.reduce_sum(tf.square(my), axis=0)
-        cn, cs, cs2 = tf.reduce_sum(tf.cast(valid_samples, tf.int32), axis=0), tf.reduce_sum(constrained_mean,
-                                                                                             axis=0), tf.reduce_sum(
-            tf.square(constrained_mean), axis=0)
 
-        self.sess.run(iterator.initializer)
+@tf.function
+def sample_mean(model, sample_points, batch_size=1):
+    with tf.device('/gpu:{}'.format(model._GPU)):
+        sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
 
-        tot_s, tot_s2, tot_cs, tot_cs2, tot_cn = 0., 0., 0., 0., 0
-        #     global_means = []
+        dataset = sample_T.batch(batch_size)
 
-        pbar = tqdm_notebook(total=n_samples)
+        tot_s = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
+        tot_s2 = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
 
-        while True:
-            try:
-                n_s, n_s2, n_cs, n_cs2, n_cn, batch_valid_samples = self.sess.run(
-                    [s, s2, cs, cs2, cn, valid_samples])
-                tot_s += n_s
-                tot_s2 += n_s2
-                tot_cs += n_cs
-                tot_cs2 += n_cs2
-                tot_cn += n_cn
-                all_valid_samples.append(batch_valid_samples)
-                pbar.update(batch_size)
-            except tf.errors.OutOfRangeError:
-                break
+        for data in tf_tqdm(dataset):
+            # Get batch prediction (Note this isn't called yet)
+            m, v = model.model.predict_y(data)
+            my, yv = model.model.likelihood.predict_mean_and_var(m, v)
 
-        pbar.close()
+            # Get sum of x and sum of x**2
+            tot_s += tf.reduce_sum(my, axis=0)
+            tot_s2 += tf.reduce_sum(tf.square(my), axis=0)
 
+    n_samples = tf.cast(sample_points.shape[0], dtype=model.dtype)  # Make this a float to allow division
     # Calculate the resulting first two moments
-    unconstrained_mean = tot_s / n_samples
-    constrained_mean = tot_cs / tot_cn
+    mean = tot_s / n_samples
+    sd = tf.sqrt((tot_s2 - (tot_s * tot_s) / n_samples) / (n_samples - 1))
 
-    unconstrained_sd = np.sqrt((tot_s2 - (tot_s * tot_s) / n_samples) / (n_samples - 1))
-    constrained_sd = np.sqrt((tot_cs2 - (tot_cs * tot_cs) / tot_cn) / (tot_cn - 1))
-
-    # Squash the list of batches
-    all_valid_samples_arr = np.concatenate(all_valid_samples)
-    return unconstrained_mean, unconstrained_sd, constrained_mean, constrained_sd, all_valid_samples_arr
+    return mean, sd
