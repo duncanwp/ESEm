@@ -16,12 +16,7 @@ jobs:
       - run: conda config --set always_yes true
       - run: conda config --set quiet true
       - run: conda install iris
-      - run:
-          name: Install GCEm
-          command:
-            pip install -U pip
-            pip install -e .
-            pip install -r tests_requirements.txt
+      - run: pip install -r tests_requirements.txt
       - run:
           command: python -m unittest tests
           name: Test
