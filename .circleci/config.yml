@@ -1,0 +1,28 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+  codecov: codecov/codecov@1.0.2
+
+jobs:
+  test:
+    docker:
+      - image: continuumio/miniconda3
+    executor: python/default
+    steps:
+      - checkout
+      - run: conda config --add channels conda-forge
+      - run: conda config --set always_yes true
+      - run: conda config --set quiet true
+      - run: conda install iris
+      - run: pip install -r tests_requirements.txt
+      - run:
+          command: pytest --junitxml results.xml
+          name: Test
+      - codecov/upload:
+          file: results.xml
+
+workflows:
+  main:
+    jobs:
+      - test

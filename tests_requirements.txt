@@ -1,0 +1,10 @@
+# Mandatory dependencies
+tensorflow-gpu
+gpflow
+tqdm
+
+# build dependencies
+setuptools
+
+# testing
+pytest
