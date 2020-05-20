@@ -10,8 +10,5 @@ tqdm
 # build dependencies
 setuptools
 
-# testing
-unittest
-
 # documentation
 sphinx
