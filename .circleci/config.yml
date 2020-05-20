@@ -2,8 +2,7 @@ version: 2.1
 
 orbs:
   python: circleci/python@0.2.1
-
-defaults:
+  codecov: codecov/codecov@1.0.2
 
 jobs:
   build-and-test:
@@ -18,8 +17,10 @@ jobs:
       - run: conda install iris
       - run: pip install -r tests_requirements.txt
       - run:
-          command: python -m unittest tests
+          command: pytest --junitxml results.xml
           name: Test
+      - codecov/upload:
+          file: {{ results.xml }}
 
 workflows:
   main:
