@@ -20,8 +20,8 @@ jobs:
           name: Install GCEm
           command:
             pip install -U pip
-            pip install -r tests_requirements.txt
             pip install -e .
+            pip install -r tests_requirements.txt
       - run:
           command: python -m unittest tests
           name: Test
