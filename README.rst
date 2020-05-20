@@ -1,8 +1,8 @@
 GCEm
 ====
 
-[![CircleCI](https://circleci.com/gh/duncanwp/GCEm.svg?style=svg)](https://circleci.com/gh/duncanwp/GCEm)]
-[![codecov](https://codecov.io/gh/duncanwp/GCEm/branch/master/graph/badge.svg?token=4QI2G22Q3M)](https://codecov.io/gh/duncanwp/GCEm)]
+[![CircleCI](https://circleci.com/gh/duncanwp/GCEm.svg?style=svg)](https://circleci.com/gh/duncanwp/GCEm)
+[![codecov](https://codecov.io/gh/duncanwp/GCEm/branch/master/graph/badge.svg?token=4QI2G22Q3M)](https://codecov.io/gh/duncanwp/GCEm)
 
 A tool for emulating geophysical models including (but not limited to!) General Circulation Models.
 
