@@ -7,4 +7,4 @@ tqdm
 setuptools
 
 # testing
-pytest
+pytest-cov
