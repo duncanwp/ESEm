@@ -2,7 +2,6 @@ version: 2.1
 
 orbs:
   python: circleci/python@0.2.1
-  codecov: codecov/codecov@1.0.2
 
 jobs:
   test:
@@ -17,10 +16,13 @@ jobs:
       - run: conda install iris
       - run: pip install -r tests_requirements.txt
       - run:
-          command: pytest --junitxml results.xml
-          name: Test
-      - codecov/upload:
-          file: "results.xml"
+          name: Run tests
+          command: |
+            pytest -v --cov=./GCEm ./tests
+      - run:
+          name: Upload coverage report
+          command: |
+            bash <(curl -s https://codecov.io/bash) -t "${CODECOV_TOKEN}"
 
 workflows:
   main:
