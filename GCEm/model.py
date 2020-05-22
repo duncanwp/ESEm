@@ -17,7 +17,7 @@ class Model(ABC):
 
     """
 
-    def __init__(self, training_data, name='', GPU=0, dtype=None):
+    def __init__(self, training_data, name='', GPU=0):
         """
 
         :param iris.cube.Cube training_data: The training data - the leading dimension should represent training samples
@@ -35,7 +35,7 @@ class Model(ABC):
             self.training_data = training_data
             self.name = name
 
-        self.dtype = dtype if dtype is not None else training_data.dtype
+        self.dtype = training_data.dtype
         self._GPU = GPU
 
     def _post_process(self, data, name_prefix='Emulated '):

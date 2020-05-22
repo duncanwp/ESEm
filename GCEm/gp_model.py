@@ -5,6 +5,16 @@ from .model import Model
 
 class GPModel(Model):
 
+    def __init__(self, *args, **kwargs):
+        from gpflow.config import default_float
+        super(GPModel, self).__init__(*args, **kwargs)
+
+        # Ensure the training data is the same as the GPFlow default (float64)
+        #  We can't just reduce the precision of GPFlow to that of the data
+        #  because this leads to unstable optimization
+        self.dtype = default_float()
+        self.training_data = self.training_data.astype(self.dtype)
+
     def train(self, X, params=None, verbose=False):
         with tf.device('/gpu:{}'.format(self._GPU)):
             import gpflow
