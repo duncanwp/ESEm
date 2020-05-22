@@ -126,3 +126,34 @@ def get_random_params(n_params, n_samples=5):
     :return np.array:
     """
     return np.random.uniform(size=n_params*n_samples).reshape(n_samples, n_params)
+
+
+def ensemble_collocate(ensemble, observations, member_dimension='job'):
+    """
+     Efficiently collocate many ensemble members on to a set of (un-gridded) observations
+
+    :param GriddedData ensemble:
+    :param UngriddedData observations:
+    :param str member_dimension:
+    :return:
+    """
+    from iris.cube import Cube, CubeList
+    from iris.coords import DimCoord, AuxCoord
+    from cis.collocation.col_implementations import GriddedUngriddedCollocator, DummyConstraint
+    from cis.data_io.gridded_data import make_from_cube
+
+    col = GriddedUngriddedCollocator(missing_data_for_missing_sample=False)
+    col_members = CubeList()
+
+    for member in ensemble.slices_over(member_dimension):
+        # Use CIS to collocate each ensemble member on to the observations
+        #  The interpolation weights are cached within col automatically
+        collocated_job, = col.collocate(observations, make_from_cube(member), DummyConstraint(), 'lin')
+        # Turn the interpolated data in to a flat cube for easy stacking
+        new_c = Cube(collocated_job.data.reshape(1, -1), long_name=collocated_job.name(), units='1',
+                     dim_coords_and_dims=[(DimCoord(np.arange(collocated_job.data.shape[0]), long_name="obs"), 1),
+                                          (DimCoord(member.coord(member_dimension).points, long_name=member_dimension), 0)],
+                     aux_coords_and_dims=[(AuxCoord(c.points, standard_name=c.standard_name), 1) for c in collocated_job.coords()])
+        col_members.append(new_c)
+    col_ensemble = col_members.concatenate_cube()
+    return col_ensemble
