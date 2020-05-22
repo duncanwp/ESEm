@@ -1,5 +1,6 @@
 import unittest
 from GCEm.gp_model import GPModel
+from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
 

@@ -51,18 +51,6 @@ def simple_polynomial_fn_three_param(x, y, z, a=1., b=1., c=2., x0=0., y0=0., z0
     return 1. + a*(x-x0)**2 + b*(y-y0)**3 + c*(z-z0)**3
 
 
-def get_uniform_params(n_params, n_samples=5):
-    # Slightly convoluted method for getting a flat set of points evenly
-    # sampling a (unit) N-dimensional space
-    return np.stack([*np.meshgrid(*[np.linspace(0., 1., n_samples)]*n_params)]).reshape(-1, n_params)
-
-
-def get_random_params(n_params, n_samples=5):
-    # Slightly convoluted method for getting a flat set of points evenly
-    # sampling a (unit) N-dimensional space
-    return np.random.uniform(size=n_params*n_samples).reshape(n_samples, n_params)
-
-
 def pop_elements(params, idx1, idx2=None):
     """
     Select a specific parameter index to remove

@@ -1,41 +1,6 @@
 import numpy as np
 
 
-def get_white_cube(cube, ref_mean=None, ref_std=None):
-    """
-        Whiten a cube
-
-    :param iris.cubes.Cube cube: The input data
-    :param float ref_mean: The mean of the data (will calculate the mean directly if not provided)
-    :param float ref_std: The standard deviation of the data (will calculated the standard deviation directly if not
-    provided)
-    :return iris.cubes.Cube: A copy of the cube with zero mean and unit standard deviation
-    """
-    ref_mean = ref_mean or cube.data.mean()
-    ref_std = ref_std or cube.data.std()
-    return cube.copy(data=(cube.data - ref_mean) / ref_std)
-
-
-def get_un_white_cube(data, ref_mean, ref_std):
-    """
-        Un-whiten a cube
-
-    :param iris.cubes.Cube cube: The input data
-    :param float ref_mean: The mean of the original data
-    :param float ref_std: The standard deviation of the original data
-    :return iris.cubes.Cube: A copy of the cube with its original mean and standard deviation
-    """
-    # TODO should this return an actual Cube?
-    return (data * ref_std) + ref_mean
-
-
-def extract_cube(cubelist, *args, **kwargs):
-    import iris.cube
-    res = iris.cube.CubeList(cubelist).extract(*args, **kwargs)
-    assert len(res) == 1, "Expected single cube but got {}".format(len(res))
-    return res[0]
-
-
 def ensure_bounds(cube):
     if not cube.coord("latitude").has_bounds():
         cube.coord("latitude").guess_bounds()
@@ -78,6 +43,7 @@ def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, m
     fig, ax = plt.subplots(1, figsize=figsize)
     lower, upper = stats.norm.interval(0.95, loc=pred_mean, scale=np.sqrt(pred_var))
     bad = (upper < test_mean) | (lower > test_mean)
+    print("Proportion of 'Bad' estimates : {:.2f}%".format((bad.sum()/(~bad).sum())*100.))
     col = ['r' if b else "k" for b in bad]
 
     # There's no way to set individual colors for errorbar points...
@@ -100,3 +66,63 @@ def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, m
     ax.set_xlim([minx, maxx])
     ax.set_ylim([miny, maxy])
 
+
+def plot_parameter_space(df, nbins=100, target_df=None, smooth=True,
+                         xmins=None, xmaxs=None, fig_size=(8, 6)):
+    from itertools import repeat
+    import matplotlib.pyplot as plt
+
+    def get_dist_bins(x, xmin, xmax, nbins, *args, **kwargs):
+        vals, bins = np.histogram(x, *args, range=(xmin, xmax), bins=nbins, density=True, **kwargs)
+        return vals, bins
+
+    def get_dist_kde(x, xmin, xmax, nbins, *args, **kwargs):
+        from scipy.stats import gaussian_kde
+        bins = np.linspace(xmin, xmax, nbins)
+        density = gaussian_kde(x[np.isfinite(x)], *args, **kwargs)
+        return density(bins), bins
+
+    get_dist = get_dist_kde if smooth else get_dist_bins
+
+    fig, axes = plt.subplots(nrows=1, ncols=df.shape[1], figsize=fig_size)
+
+    xmins = repeat(0.) if xmins is None else xmins
+    xmaxs = repeat(1.) if xmaxs is None else xmaxs
+
+    for param, ax, xmin, xmax in zip(df, axes, xmins, xmaxs):
+        vals, bins = get_dist(df[param], xmin, xmax, nbins)
+
+        X, Y = np.meshgrid(np.arange(2), bins)
+        ax.pcolor(X, Y, vals[:, np.newaxis], vmin=0, vmax=1)
+        if target_df is not None:
+            ax.plot([0, 1], [target_df[param], target_df[param]], c='r')
+        ax.set_xticks([], [])
+        ax.set_xticklabels('')
+        ax.set_xlabel(param, rotation=90)
+
+    for ax in axes[1:]:
+        ax.set_yticks([], [])
+        ax.set_yticklabels('')
+
+
+def get_uniform_params(n_params, n_samples=5):
+    """
+    Slightly convoluted method for getting a flat set of points evenly
+     sampling a (unit) N-dimensional space
+
+    :param int n_params: The number of parameters (dimensions) to sample from
+    :param int n_samples: The number of uniformly spaced samples (in each dimension)
+    :return np.array: n_samples**n_params parameters uniformly sampled
+    """
+    return np.stack([*np.meshgrid(*[np.linspace(0., 1., n_samples)]*n_params)]).reshape(-1, n_params)
+
+
+def get_random_params(n_params, n_samples=5):
+    """
+     Get points randomly sampling a (unit) N-dimensional space
+
+    :param int n_params: The number of parameters (dimensions) to sample from
+    :param int n_samples: The number of parameters to (radnomly) sample
+    :return np.array:
+    """
+    return np.random.uniform(size=n_params*n_samples).reshape(n_samples, n_params)
