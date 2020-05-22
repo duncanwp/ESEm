@@ -111,9 +111,8 @@ def get_implausibility(model, obs, sample_points,
     implausibility = _tf_implausibility(model, obs.data, sample_points,
                                         observational_var, interann_var,
                                         respres_var, struct_var, batch_size=batch_size)
-    # TODO: I could return this as a cube for easier plotting
 
-    return implausibility
+    return model._post_process(implausibility, name_prefix='Implausibility in emulated ')
 
 
 def batch_constrain(model, obs, sample_points,
@@ -252,7 +251,7 @@ def _tf_implausibility(model, obs, sample_points,
 
 
 @tf.function
-def batch_stats(model, sample_points, batch_size=1):
+def _tf_stats(model, sample_points, batch_size):
     with tf.device('/gpu:{}'.format(model._GPU)):
         sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
 
@@ -275,3 +274,11 @@ def batch_stats(model, sample_points, batch_size=1):
     sd = tf.sqrt((tot_s2 - (tot_s * tot_s) / n_samples) / (n_samples - 1))
 
     return mean, sd
+
+
+def batch_stats(model, sample_points, batch_size=1):
+    mean, sd = _tf_stats(model, sample_points, batch_size)
+    # Wrap the results in a cube (but pop off the sample dim which will always
+    #  only be one in this case
+    return (model._post_process(mean, 'Ensemble mean ')[0],
+            model._post_process(sd, 'Ensemble standard deviation in ')[0])

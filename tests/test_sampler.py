@@ -22,10 +22,10 @@ class SampleTest(unittest.TestCase):
 
         mean, std_dev = batch_stats(self.m, sample_params)
 
-        assert_allclose(mean, expected_ensemble.data.mean(axis=0), rtol=1e-1)
+        assert_allclose(mean.data, expected_ensemble.data.mean(axis=0), rtol=1e-1)
         # This is a really loose test but it needs to be because of the
         #  stochastic nature of the model and the ensemble points
-        assert_allclose(std_dev, expected_ensemble.data.std(axis=0), rtol=.5)
+        assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=.5)
 
     def test_implausibility_scalar_uncertainty(self):
         # Test the implausibility is correct
@@ -46,7 +46,7 @@ class SampleTest(unittest.TestCase):
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
-        assert_allclose(implausibility.numpy()[10, :].mean(), 1., rtol=1e-2)
+        assert_allclose(implausibility.data[10, :].mean(), 1., rtol=1e-2)
 
     def test_implausibility_interann(self):
         # Test the implausibility is correct
@@ -67,7 +67,7 @@ class SampleTest(unittest.TestCase):
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
-        assert_allclose(implausibility.numpy()[10, :].mean(), 1., rtol=1e-2)
+        assert_allclose(implausibility.data[10, :].mean(), 1., rtol=1e-2)
 
     def test_implausibility_repres(self):
         # Test the implausibility is correct
@@ -88,7 +88,7 @@ class SampleTest(unittest.TestCase):
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
-        assert_allclose(implausibility.numpy()[10, :].mean(), 1., rtol=1e-2)
+        assert_allclose(implausibility.data[10, :].mean(), 1., rtol=1e-2)
 
     def test_implausibility_struct(self):
         # Test the implausibility is correct
@@ -109,7 +109,7 @@ class SampleTest(unittest.TestCase):
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
-        assert_allclose(implausibility.numpy()[10, :].mean(), 1., rtol=1e-2)
+        assert_allclose(implausibility.data[10, :].mean(), 1., rtol=1e-2)
 
     def test_implausibility_vector_uncertainty(self):
         # Test with a vector obs uncertainty
@@ -133,7 +133,7 @@ class SampleTest(unittest.TestCase):
         expected = np.ones((100,))
         # The first element has zero variance so nan implausibility
         expected[0] = np.nan
-        assert_allclose(implausibility.numpy()[10, :], expected, rtol=1e-1)
+        assert_allclose(implausibility.data[10, :], expected, rtol=1e-1)
 
     def test_calc_implausibility(self):
         # Test the implausibility is correct

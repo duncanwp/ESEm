@@ -121,28 +121,28 @@ def get_2d_three_param_cube(params=None, n_samples=10):
     return ensemble
 
 
-def eval_1d_cube(params):
+def eval_1d_cube(params, **kwargs):
     """
     Create a single 1D cube representing the 'true' value for a given parameter
 
     :param np.array params: A set of params to represent the 'truth'
     :return:
     """
-    cube = make_dummy_1d_cube()
+    cube = make_dummy_1d_cube(**kwargs)
     # Scale the base data
     cube.data *= simple_polynomial_fn_two_param(*params)
 
     return cube
 
 
-def eval_2d_cube(params):
+def eval_2d_cube(params, **kwargs):
     """
     Create a single 2D cube representing the 'true' value for a given parameter
 
     :param np.array params: A set of params to represent the 'truth'
     :return:
     """
-    cube = make_dummy_2d_cube()
+    cube = make_dummy_2d_cube(**kwargs)
     # Scale the base data
     cube.data *= simple_polynomial_fn_three_param(*params)
 

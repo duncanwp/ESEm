@@ -16,15 +16,44 @@ class GPTest(object):
 
         # Get the actual test data
         #  Use the class method `eval_fn` so 'self' doesn't get passed
-        expected = type(self).eval_fn(self.test_params[0])[0]
+        expected = type(self).eval_fn(self.test_params[0])
 
-        pred_m, pred_var = self.model.predict(self.test_params)
+        pred_m, pred_var = self.model._tf_predict(self.test_params[0:1])
 
-        assert_allclose(expected.data, pred_m, rtol=1e-3)
+        assert_allclose(expected.data.reshape(1, -1), pred_m.numpy(), rtol=1e-3)
 
         # Assert that the mean is within the variance
         # TODO: I'm not sure exactly how to test this...
         # assert_allclose((expected.data-pred_m), pred_var, rtol=1e-4)
+
+    def test_predict_interface(self):
+
+        # Get the actual test data
+        #  Use the class method `eval_fn` so 'self' doesn't get passed
+        expected = type(self).eval_fn(self.test_params[0])
+
+        pred_m, pred_var = self.model.predict(self.test_params[0:1])
+
+        assert_allclose(expected.data, pred_m.data, rtol=1e-3)
+        assert pred_m.name() == 'Emulated ' + expected.name()
+        assert pred_var.name() == 'Variance in emulated ' + expected.name()
+        assert pred_m.units == expected.units
+        assert pred_var.units == expected.units
+
+    def test_predict_interface_multiple_samples(self):
+        from iris.cube import CubeList
+        # Get the actual test data
+        #  Use the class method `eval_fn` so 'self' doesn't get passed
+        expected = CubeList([type(self).eval_fn(p, job_n=i) for i, p in enumerate(self.test_params)])
+        expected = expected.concatenate_cube()
+
+        pred_m, pred_var = self.model.predict(self.test_params)
+
+        assert_allclose(expected.data, pred_m.data, rtol=1e-3)
+        assert pred_m.name() == 'Emulated ' + (expected.name() or 'data')
+        assert pred_var.name() == 'Variance in emulated ' + (expected.name() or 'data')
+        assert pred_m.units == expected.units
+        assert pred_var.units == expected.units
 
 
 class Simple1DTest(unittest.TestCase, GPTest):
@@ -34,7 +63,7 @@ class Simple1DTest(unittest.TestCase, GPTest):
 
     @classmethod
     def setUpClass(cls) -> None:
-        params, test = pop_elements(get_uniform_params(2), 10)
+        params, test = pop_elements(get_uniform_params(2), 10, 12)
 
         ensemble = get_1d_two_param_cube(params)
         m = GPModel(ensemble)
