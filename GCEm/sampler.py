@@ -39,21 +39,29 @@ class Sampler(ABC):
         pass
 
 
-def tf_tqdm(ds):
-    import io
-    # Suppress printing the initial status message - it creates extra newlines, for some reason.
-    bar = tqdm(file=io.StringIO())
+class tf_tqdm(object):
+    """
+    A progress bar suitable for reporting on progress iterating over a TF dataset
+    """
+    def __init__(self, unit='sample', batch_size=1, total=None):
+        import io
+        self.unit = unit
+        self.batch_size = batch_size
+        self.total = total
+        self.bar = tqdm(file=io.StringIO(), unit=unit, total=int(total))
 
-    def advance_tqdm(e):
-        def fn():
-            bar.update(1)
-            # Print the status update manually.
-            print('\r', end='')
-            print(repr(bar), end='')
-        tf.py_function(fn, [], [])
-        return e
+    def __call__(self, ds, *args, **kwargs):
+        def advance_tqdm(e):
+            def fn():
+                self.bar.update(self.batch_size)
+                # Print the status update manually.
+                print('\r', end='')
+                print(repr(self.bar), end='')
 
-    return ds.map(advance_tqdm)
+            tf.py_function(fn, [], [])
+            return e
+
+        return ds.map(advance_tqdm)
 
 
 @tf.function
@@ -110,7 +118,10 @@ def get_implausibility(model, obs, sample_points,
 
     implausibility = _tf_implausibility(model, obs.data, sample_points,
                                         observational_var, interann_var,
-                                        respres_var, struct_var, batch_size=batch_size)
+                                        respres_var, struct_var, batch_size=batch_size,
+                                        pbar=tf_tqdm(batch_size=batch_size,
+                                                     total=sample_points.shape[0])
+                                        )
 
     return model._post_process(implausibility, name_prefix='Implausibility in emulated ')
 
@@ -150,7 +161,9 @@ def batch_constrain(model, obs, sample_points,
                                   observational_var, interann_var,
                                   respres_var, struct_var,
                                   tolerance=tolerance, threshold=threshold,
-                                  batch_size=batch_size)
+                                  batch_size=batch_size,
+                                  pbar=tf_tqdm(batch_size=batch_size,
+                                               total=sample_points.shape[0]))
 
     return valid_samples
 
@@ -158,7 +171,7 @@ def batch_constrain(model, obs, sample_points,
 @tf.function
 def _tf_constrain(model, obs, sample_points,
                   observational_var, interann_var, respres_var, struct_var,
-                  tolerance, threshold, batch_size=1):
+                  tolerance, threshold, batch_size, pbar):
     """
 
     Each of the specified uncertainties are assumed to be normal and are added in quadrature
@@ -184,7 +197,7 @@ def _tf_constrain(model, obs, sample_points,
 
         all_valid = tf.zeros((0, ), dtype=tf.bool)
 
-        for data in tf_tqdm(dataset):
+        for data in pbar(dataset):
             # Get batch prediction
             emulator_mean, emulator_var = model._tf_predict(data)
 
@@ -209,7 +222,7 @@ def _calc_implausibility(emulator_mean, obs, emulator_var, interann_var, observa
 @tf.function
 def _tf_implausibility(model, obs, sample_points,
                        observational_var, interann_var,
-                       respres_var, struct_var, batch_size=1):
+                       respres_var, struct_var, batch_size, pbar):
     """
 
     Each of the specified uncertainties are assumed to be normal and are added in quadrature
@@ -236,7 +249,7 @@ def _tf_implausibility(model, obs, sample_points,
 
         all_implausibility = tf.zeros((0, obs.shape[0]), dtype=sample_points.dtype)
 
-        for data in tf_tqdm(dataset):
+        for data in pbar(dataset):
             # Get batch prediction
             emulator_mean, emulator_var = model._tf_predict(data)
 
@@ -251,16 +264,16 @@ def _tf_implausibility(model, obs, sample_points,
 
 
 @tf.function
-def _tf_stats(model, sample_points, batch_size):
+def _tf_stats(model, sample_points, batch_size, pbar):
     with tf.device('/gpu:{}'.format(model._GPU)):
         sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
-
         dataset = sample_T.batch(batch_size)
+        n_samples = tf.shape(sample_points)[0]
 
         tot_s = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
         tot_s2 = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
 
-        for data in tf_tqdm(dataset):
+        for data in pbar(dataset):
             # Get batch prediction
             emulator_mean, _ = model._tf_predict(data)
 
@@ -268,7 +281,7 @@ def _tf_stats(model, sample_points, batch_size):
             tot_s += tf.reduce_sum(emulator_mean, axis=0)
             tot_s2 += tf.reduce_sum(tf.square(emulator_mean), axis=0)
 
-    n_samples = tf.cast(sample_points.shape[0], dtype=model.dtype)  # Make this a float to allow division
+    n_samples = tf.cast(n_samples, dtype=model.dtype)  # Make this a float to allow division
     # Calculate the resulting first two moments
     mean = tot_s / n_samples
     sd = tf.sqrt((tot_s2 - (tot_s * tot_s) / n_samples) / (n_samples - 1))
@@ -277,7 +290,10 @@ def _tf_stats(model, sample_points, batch_size):
 
 
 def batch_stats(model, sample_points, batch_size=1):
-    mean, sd = _tf_stats(model, sample_points, batch_size)
+    mean, sd = _tf_stats(model, tf.constant(sample_points),
+                         tf.constant(batch_size, dtype=tf.int64),
+                         pbar=tf_tqdm(batch_size=batch_size,
+                                      total=sample_points.shape[0]))
     # Wrap the results in a cube (but pop off the sample dim which will always
     #  only be one in this case
     return (model._post_process(mean, 'Ensemble mean ')[0],
