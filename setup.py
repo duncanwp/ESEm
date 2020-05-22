@@ -7,14 +7,13 @@ dependencies = ["scitools-iris",
                 "tensorflow",
                 "numpy",
                 'matplotlib',
-                'scipy',
-                'sklearn']
+                'scipy']
 
-optional_dependencies = {"Keras": ["keras"], "GPFlow": ["gpflow"]}
+optional_dependencies = {"Keras": ["keras"], "GPFlow": ["gpflow"], 'sklearn': ['sklearn']}
 
 
 def readme():
-    with open('README.rst') as f:
+    with open('README.md') as f:
         return f.read()
 
 
