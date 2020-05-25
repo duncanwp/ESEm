@@ -77,8 +77,10 @@ class ABCSampler(Sampler):
             prior_x = tfd.Uniform(low=tf.zeros(self.model.n_params, dtype=tf.float64),
                                   high=tf.ones(self.model.n_params, dtype=tf.float64))
 
-        return _tf_sample(self.model, self.obs.data, prior_x, n_samples,
-                          self.total_var, tolerance, threshold).numpy()
+        n_iterations, samples = _tf_sample(self.model, self.obs.data, prior_x, n_samples,
+                          self.total_var, tolerance, threshold)
+        print("Acceptance rate: {}".format(n_samples/n_iterations.numpy()))
+        return samples.numpy()
 
     def get_implausibility(self, sample_points, batch_size=1):
         """
@@ -224,32 +226,60 @@ def _tf_sample(model, obs, dist, n_sample_points, total_variance,
     :return:
     """
     with tf.device('/gpu:{}'.format(model._GPU)):
-        samples = tf.zeros((0, 2), dtype=tf.float64)
+        # Empty array in which to hold the samples (and the number of iterations)
+        samples_i = tf.zeros((0, model.n_params+1), dtype=tf.float64)
         i0 = tf.constant(0)
 
-        _, all_samples = tf.while_loop(
+        _, res = tf.while_loop(
             lambda i, m: i < n_sample_points,
             lambda i, m: [i + 1,
                           tf.concat([m, get_valid_sample(model, obs, dist, threshold, tolerance, total_variance)],
                                     axis=0)],
-            loop_vars=[i0, samples],
-            shape_invariants=[i0.get_shape(), tf.TensorShape([None, 2])])
-    return all_samples
+            loop_vars=[i0, samples_i],
+            shape_invariants=[i0.get_shape(), tf.TensorShape([None, model.n_params+1])]
+        )
+
+    all_samples, iterations = res[:, :-1], res[:, -1:]
+    n_iterations = tf.reduce_sum(iterations)
+    return n_iterations, all_samples
 
 
 @tf.function()
 def get_valid_sample(model, obs, dist, threshold, tolerance, total_variance):
+    """
+    Given a distribution keep sampling it until it returns a valid sample
+
+    :param model:
+    :param obs:
+    :param dist:
+    :param threshold:
+    :param tolerance:
+    :param total_variance:
+    :return Tensor(n_params + 1): the valid parameters and the number of iterations it took to find them
+    """
     valid = dist.sample()
+    count = tf.constant((1,), dtype=tf.float64)
     valid = tf.while_loop(
-        lambda x: tf.math.logical_not(is_valid_sample(model, obs, x, threshold, tolerance, total_variance)),
-        lambda x: (dist.sample(),),
-        loop_vars=(valid,)
+        lambda x, i: tf.math.logical_not(is_valid_sample(model, obs, x, threshold, tolerance, total_variance)),
+        lambda x, i: (dist.sample(), i+1.),
+        loop_vars=(valid, count)
     )
-    return tf.reshape(valid, (1, -1))
+    return tf.reshape(tf.concat(valid, 0), (1, -1))
 
 
 @tf.function
 def is_valid_sample(model, obs, sample, threshold, tolerance, total_variance):
+    """
+     Given a sample determine if it is 'valid' or not
+
+    :param model:
+    :param obs:
+    :param sample:
+    :param threshold:
+    :param tolerance:
+    :param total_variance:
+    :return bool:
+    """
     emulator_mean, emulator_var = model._tf_predict(tf.reshape(sample, (1, -1)))
     tot_sd = tf.sqrt(tf.add(emulator_var, total_variance))
     implausibility = _calc_implausibility(emulator_mean, obs, tot_sd)
