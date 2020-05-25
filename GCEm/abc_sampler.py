@@ -5,6 +5,10 @@ from GCEm.utils import tf_tqdm
 
 
 class ABCSampler(Sampler):
+    """
+    Sample from the posterior using Approximate Bayesian Computation (ABC).
+     This is a style of rejection sampling
+    """
 
     def sample(self, prior_x=None, n_samples=1, tolerance=0., threshold=3.):
         """

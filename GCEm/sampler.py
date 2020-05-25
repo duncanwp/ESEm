@@ -52,7 +52,8 @@ class Sampler(ABC):
 
 class MCMCSampler(Sampler):
     """
-    A class that efficiently samples a Model object for posterior inference
+    Sample from the posterior using the TensorFlow Markov-Chain Monte-Carlo (MCMC)
+     sampling tools. It uses a HamiltonianMonteCarlo kernel.
     """
 
     def sample(self, prior_x=None, n_samples=1, kernel_kwargs=None, mcmc_kwargs=None):

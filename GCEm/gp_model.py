@@ -4,6 +4,10 @@ import gpflow
 
 
 class GPModel(Model):
+    """
+    Simple Gaussian Process (GP) regression emulator which assumes independent
+    inputs (and outputs). Different kernels can be specified.
+    """
 
     def __init__(self, *args, **kwargs):
         from gpflow.config import default_float

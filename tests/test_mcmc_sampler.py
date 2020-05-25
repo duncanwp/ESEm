@@ -20,16 +20,11 @@ class MCMCSamplerTest(unittest.TestCase):
 
     def test_calc_likelihood(self):
         # Test the likelihood is correct
-        # FIXME
-
         prior_x = tfd.Uniform(low=tf.zeros(self.m.n_params, dtype=tf.float64),
                               high=tf.ones(self.m.n_params, dtype=tf.float64))
 
         prior_x = tfd.Independent(prior_x, reinterpreted_batch_ndims=1, name='model')
 
-        print(prior_x.log_prob([1., 1.]))
-        print(prior_x.log_prob([0., 1.]))
-        print(prior_x.log_prob([2.]))
         # Test prob of x
         imp = _target_log_likelihood(prior_x,
                                      np.asarray([1.]),  # x
@@ -79,8 +74,8 @@ class MCMCSamplerTest(unittest.TestCase):
         assert_allclose(imp, np.log(np.asarray([expected*expected])))
 
     def test_sample(self):
-        # Test that batch constrain returns the correct boolean array for
-        #  the given model, obs and params
+        # Test that sample returns the correct shape array for
+        #  the given model, obs and params.
         obs_uncertainty = self.training_ensemble.data.std(axis=0)
 
         # Perturbing the obs by one sd should lead to an implausibility of 1.
@@ -95,7 +90,6 @@ class MCMCSamplerTest(unittest.TestCase):
         # Generate only valid samples
         valid_samples = sampler.sample(n_samples=100)
 
-        print(valid_samples.shape)
+        # Just check the shape. We test the actual probabilities above
+        #  and we don't need to test the tf mcmc code
         self.assert_(valid_samples.shape == (100, 2))
-
-        # assert_allclose(get_1d_two_param_cube(valid_samples).data.mean(), obs.data.mean())

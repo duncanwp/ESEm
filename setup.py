@@ -35,5 +35,5 @@ setup(name='GCEm',
       keywords=['climate', 'machine-learning'],
       install_requires=dependencies,
       extras_require=optional_dependencies,
-      tests_require=['unittest'],
+      tests_require=['pytest'],
       )

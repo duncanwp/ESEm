@@ -17,11 +17,21 @@ def get_weights(cube):
     return iris.analysis.cartography.area_weights(cube[0, :, :, :], normalize=True)
 
 
-def get_param_mask(X, y, **kwargs):
+def get_param_mask(X, y, criteria='bic', **kwargs):
+    """
+    Return a boolean mask of the parameters which meet the specified information
+     criteria
+
+    :param np.array X: The input parameters to the model
+    :param np.array y: The outputs
+    :param str criteria: The information criteria to use ('aic' or 'bic')
+    :param kwargs:
+    :return:
+    """
     from sklearn.linear_model import LassoLarsIC
     from sklearn.feature_selection import SelectFromModel
 
-    lsvc = LassoLarsIC(criterion='bic').fit(X, y)
+    lsvc = LassoLarsIC(criterion=criteria).fit(X, y)
     model = SelectFromModel(lsvc, prefit=True, **kwargs)
     return np.where(model.get_support())[0]
 

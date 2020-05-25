@@ -1,4 +1,14 @@
 # Created by .ignore support plugin (hsz.mobi)
+
+# Data files
+*.csv
+*.lev??
+*.nc
+*.h5
+
+# IDE files
+.idea
+
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
