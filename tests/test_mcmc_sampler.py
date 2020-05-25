@@ -1,0 +1,101 @@
+import unittest
+from GCEm.gp_model import GPModel
+from GCEm.utils import get_uniform_params
+from GCEm.sampler import MCMCSampler, _target_log_likelihood
+from tests.mock import *
+from numpy.testing import assert_allclose
+import tensorflow as tf
+import tensorflow_probability as tfp
+tfd = tfp.distributions
+
+
+class MCMCSamplerTest(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.training_params = get_uniform_params(2)
+        self.training_ensemble = get_1d_two_param_cube(self.training_params)
+
+        self.m = GPModel(self.training_ensemble, n_params=2)
+        self.m.train(self.training_params)
+
+    def test_calc_likelihood(self):
+        # Test the likelihood is correct
+        # FIXME
+
+        prior_x = tfd.Uniform(low=tf.zeros(self.m.n_params, dtype=tf.float64),
+                              high=tf.ones(self.m.n_params, dtype=tf.float64))
+
+        prior_x = tfd.Independent(prior_x, reinterpreted_batch_ndims=1, name='model')
+
+        print(prior_x.log_prob([1., 1.]))
+        print(prior_x.log_prob([0., 1.]))
+        print(prior_x.log_prob([2.]))
+        # Test prob of x
+        imp = _target_log_likelihood(prior_x,
+                                     np.asarray([1.]),  # x
+                                     np.asarray([0.]),  # diff
+                                     np.asarray([1.]),  # Tot Std
+                                     )
+        # Prob at center of a Normal distribution of sigma=1
+        expected = 1. / np.sqrt(2. * np.pi)
+        assert_allclose(imp, np.log(np.asarray([expected])))
+
+        imp = _target_log_likelihood(prior_x,
+                                     np.asarray([0., 0.]),  # x
+                                     np.asarray([0.]),  # diff
+                                     np.asarray([1.]),  # Tot Std
+                                     )
+        assert_allclose(imp, np.log(np.asarray([expected])))
+
+        imp = _target_log_likelihood(prior_x,
+                                     np.asarray([2., 1]),  # x
+                                     np.asarray([0., 0.]),  # diff
+                                     np.asarray([1., 1.]),  # Tot Std
+                                     )
+        assert_allclose(imp, np.log(np.asarray([0.])))
+
+        # Test a bunch of simple cases
+        imp = _target_log_likelihood(prior_x,
+                                     np.asarray([0.5, 0.5]),  # x
+                                     np.asarray([0.]),  # diff
+                                     np.asarray([1.]),  # Tot Std
+                                     )
+        assert_allclose(imp, np.log(np.asarray([expected])))
+
+        imp = _target_log_likelihood(prior_x,
+                                     np.asarray([0.5, 0.5]),  # x
+                                     np.asarray([1.]),  # diff
+                                     np.asarray([1.]),  # Tot Std
+                                     )
+        # Prob at 1-sigma of a Normal distribution (of sigma=1)
+        expected = np.exp(-0.5) / np.sqrt(2. * np.pi)
+        assert_allclose(imp, np.log(np.asarray([expected])))
+
+        imp = _target_log_likelihood(prior_x,
+                                     np.asarray([0.5, 0.5]),  # x
+                                     np.asarray([1., 1.]),  # diff
+                                     np.asarray([1., 1.]),  # Tot Std
+                                     )
+        assert_allclose(imp, np.log(np.asarray([expected*expected])))
+
+    def test_sample(self):
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = MCMCSampler(self.m, obs,
+                              obs_uncertainty=obs_uncertainty/obs.data,
+                              interann_uncertainty=1.,
+                              repres_uncertainty=0.,
+                              struct_uncertainty=0.)
+
+        # Generate only valid samples
+        valid_samples = sampler.sample(n_samples=100)
+
+        print(valid_samples.shape)
+        self.assert_(valid_samples.shape == (100, 2))
+
+        # assert_allclose(get_1d_two_param_cube(valid_samples).data.mean(), obs.data.mean())
