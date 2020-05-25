@@ -1,7 +1,7 @@
 import unittest
 from GCEm.gp_model import GPModel
 from GCEm.utils import get_uniform_params
-from GCEm.sampler import ABCSampler
+from GCEm.abc_sampler import ABCSampler, constrain, _calc_implausibility
 from tests.mock import *
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -130,7 +130,6 @@ class ABCSamplerTest(unittest.TestCase):
 
     def test_calc_implausibility(self):
         # Test the implausibility is correct
-        from GCEm.sampler import _calc_implausibility
 
         # Test a bunch of simple cases
         imp = _calc_implausibility(np.asarray([1., 1., 2., 1., -2.]),  # Emulator Mean
@@ -155,7 +154,6 @@ class ABCSamplerTest(unittest.TestCase):
 
     def test_constrain(self):
         # Test that constrain returns the correct boolean array for the given implausibility and params
-        from GCEm.sampler import constrain
 
         implausibility = np.asarray([[0., 0., 0., 0., 0.],
                                      [0., 1., 1., 1., 0.],
