@@ -11,17 +11,10 @@ tfd = tfp.distributions
 
 class MCMCSamplerTest(unittest.TestCase):
 
-    def setUp(self) -> None:
-        self.training_params = get_uniform_params(2)
-        self.training_ensemble = get_1d_two_param_cube(self.training_params)
-
-        self.m = GPModel(self.training_ensemble, n_params=2)
-        self.m.train(self.training_params)
-
     def test_calc_likelihood(self):
         # Test the likelihood is correct
-        prior_x = tfd.Uniform(low=tf.zeros(self.m.n_params, dtype=tf.float64),
-                              high=tf.ones(self.m.n_params, dtype=tf.float64))
+        prior_x = tfd.Uniform(low=tf.zeros(2, dtype=tf.float64),
+                              high=tf.ones(2, dtype=tf.float64))
 
         prior_x = tfd.Independent(prior_x, reinterpreted_batch_ndims=1, name='model')
 
@@ -74,6 +67,12 @@ class MCMCSamplerTest(unittest.TestCase):
         assert_allclose(imp, np.log(np.asarray([expected*expected])))
 
     def test_sample(self):
+        self.training_params = get_uniform_params(2)
+        self.training_ensemble = get_1d_two_param_cube(self.training_params)
+
+        self.m = GPModel(self.training_params, self.training_ensemble)
+        self.m.train()
+
         # Test that sample returns the correct shape array for
         #  the given model, obs and params.
         obs_uncertainty = self.training_ensemble.data.std(axis=0)
@@ -83,7 +82,7 @@ class MCMCSamplerTest(unittest.TestCase):
 
         sampler = MCMCSampler(self.m, obs,
                               obs_uncertainty=obs_uncertainty/obs.data,
-                              interann_uncertainty=1.,
+                              interann_uncertainty=0.,
                               repres_uncertainty=0.,
                               struct_uncertainty=0.)
 
@@ -93,3 +92,21 @@ class MCMCSamplerTest(unittest.TestCase):
         # Just check the shape. We test the actual probabilities above
         #  and we don't need to test the tf mcmc code
         self.assert_(valid_samples.shape == (100, 2))
+
+    def test_simple_sample(self):
+        from iris.cube import Cube
+        X = get_uniform_params(2)
+        z = simple_polynomial_fn_two_param(*X.T)
+
+        m = GPModel(X, z)
+        m.train()
+
+        sampler = MCMCSampler(m, Cube(np.asarray([2.])),
+                              obs_uncertainty=0.1,
+                              interann_uncertainty=0.,
+                              repres_uncertainty=0.,
+                              struct_uncertainty=0.)
+
+        samples = sampler.sample(n_samples=100)
+        Zs = simple_polynomial_fn_two_param(*samples.T)
+        assert_allclose(Zs.mean(), 2., rtol=0.1)

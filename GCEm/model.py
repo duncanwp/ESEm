@@ -17,9 +17,10 @@ class Model(ABC):
 
     """
 
-    def __init__(self, training_data, n_params, name='', gpu=0, *args, **kwargs):
+    def __init__(self, training_params, training_data, name='', gpu=0, *args, **kwargs):
         """
 
+        :param pd.DataFrame training_params: The training parameters
         :param iris.cube.Cube training_data: The training data - the leading dimension should represent training samples
         :param str name: Human readable name for the model
         :param int gpu: The machine GPU to assign this model to
@@ -35,15 +36,49 @@ class Model(ABC):
             self.training_data = training_data
             self.name = name
 
-        self.n_params = n_params
+        self.training_params = training_params
+        self.n_params = training_params.shape[1]
         self.dtype = training_data.dtype
         self._GPU = gpu
-        self._structure = self._construct(*args, **kwargs)
+
+        # Useful for whitening the training data
+        self.training_std_dev = np.std(self.training_data.data, axis=0, keepdims=True)
+        self.training_mean = np.mean(self.training_data.data, axis=0, keepdims=True)
+
+        # Useful for normalising the training data
+        self.training_min = np.min(self.training_data.data, axis=0, keepdims=True)
+        self.training_max = np.max(self.training_data.data, axis=0, keepdims=True)
+
+        # Perform any pre-processing of the data the model might require
+        self._pre_process()
+
+        # Construct the model
+        self.model = self._construct(*args, **kwargs)
+
+    def scale(self, data):
+        return (data - self.training_min) / (self.training_max - self.training_min)
+
+    def rescale(self, data):
+        return data * (self.training_max - self.training_min) + self.training_min
+
+    def whiten(self, data):
+        # Add a tiny epsilon to avoid division by zero
+        return (data - self.training_mean) / (self.training_std_dev + 1e-12)
+
+    def un_whiten(self, data):
+        return (data * self.training_std_dev) + self.training_mean
 
     @abstractmethod
     def _construct(self, *args, **kwargs):
         """
         Construct the model and compile if necessary (but don't train it yet)
+        :return:
+        """
+        pass
+
+    def _pre_process(self):
+        """
+         Any necessary rescaling or weightings are performed here
         :return:
         """
         pass
@@ -79,7 +114,7 @@ class Model(ABC):
         return out
 
     @abstractmethod
-    def train(self, X, verbose=False):
+    def train(self, verbose=False):
         """
         Train on the training data
         :return:

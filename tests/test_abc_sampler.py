@@ -12,8 +12,8 @@ class ABCSamplerTest(unittest.TestCase):
         self.training_params = get_uniform_params(2)
         self.training_ensemble = get_1d_two_param_cube(self.training_params)
 
-        self.m = GPModel(self.training_ensemble, n_params=2)
-        self.m.train(self.training_params)
+        self.m = GPModel(self.training_params, self.training_ensemble)
+        self.m.train()
 
     def test_implausibility_scalar_uncertainty(self):
         # Test the implausibility is correct

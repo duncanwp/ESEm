@@ -1,17 +1,30 @@
 import unittest
-from GCEm.gp_model import GPModel
+from GCEm.nn_model import NNModel
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
 
 
-class GPTest(object):
+class NNTest(unittest.TestCase):
     """
     Tests on the GPModel class and its methods. The actual model is setup
      independently in the concrete test classes below. This abstracts the
      different test cases out and allows the model to only be created once
      for each test case.
     """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        params, test = pop_elements(get_uniform_params(3), 50)
+
+        ensemble = get_2d_three_param_cube(params)
+        m = NNModel(params, ensemble)
+        m.train()
+
+        cls.model = m
+        cls.params = params
+        cls.test_params = test
+        cls.eval_fn = eval_2d_cube
 
     def test_simple_predict(self):
 
@@ -21,7 +34,7 @@ class GPTest(object):
 
         pred_m, pred_var = self.model._tf_predict(self.test_params[0:1])
 
-        assert_allclose(expected.data.reshape(1, -1), pred_m.numpy(), rtol=1e-3)
+        assert_allclose(self.model.whiten(expected.data), pred_m, rtol=1e-3)
 
         # Assert that the mean is within the variance
         # TODO: I'm not sure exactly how to test this...
@@ -72,65 +85,6 @@ class GPTest(object):
         # This is a really loose test but it needs to be because of the
         #  stochastic nature of the model and the ensemble points
         assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=.5)
-
-
-class Simple1DTest(unittest.TestCase, GPTest):
-    """
-    Setup for the simple 1D 2 parameter test case
-    """
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        params, test = pop_elements(get_uniform_params(2), 10, 12)
-
-        ensemble = get_1d_two_param_cube(params)
-        m = GPModel(params, ensemble)
-        m.train()
-
-        cls.model = m
-        cls.params = params
-        cls.test_params = test
-        cls.eval_fn = eval_1d_cube
-
-
-class Simple2DTest(unittest.TestCase, GPTest):
-    """
-    Setup for the simple 2D 3 parameter test case.
-    """
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        params, test = pop_elements(get_uniform_params(3), 50)
-
-        ensemble = get_2d_three_param_cube(params)
-        m = GPModel(params, ensemble)
-        m.train()
-
-        cls.model = m
-        cls.params = params
-        cls.test_params = test
-        cls.eval_fn = eval_2d_cube
-
-
-class Simple32bitTest(unittest.TestCase, GPTest):
-    """
-    Setup for the simple 2D 3 parameter test case with 32bit data
-    """
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        params, test = pop_elements(get_uniform_params(3), 50)
-
-        ensemble = get_2d_three_param_cube(params)
-        # Create a new, ensemble at lower precision
-        ensemble = ensemble.copy(data=ensemble.data.astype('float32'))
-        m = GPModel(params, ensemble)
-        m.train()
-
-        cls.model = m
-        cls.params = params
-        cls.test_params = test
-        cls.eval_fn = eval_2d_cube
 
 
 if __name__ == '__main__':
