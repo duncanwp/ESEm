@@ -1,13 +1,13 @@
 from abc import ABC
 import tensorflow as tf
 import numpy as np
+from GCEm.utils import tf_tqdm
 
 
 # TODO: I need to define some distance metrics (including uncertainty?) Should these be functions, or objects?
 #  Should this be passed to __init__, or calibrate?
 
 # TODO: I'm not yet sure how the MCMC sampling works so this might need adjusting
-from tqdm import tqdm
 
 
 class Sampler(ABC):
@@ -15,16 +15,31 @@ class Sampler(ABC):
     A class that efficiently samples a Model object for posterior inference
     """
 
-    def __init__(self, model, obs, var_obs=0., log_obs=False):
+    def __init__(self, model, obs,
+                 obs_uncertainty=0., interann_uncertainty=0.,
+                 repres_uncertainty=0., struct_uncertainty=0.):
         """
-
+        :param GCEm.model.Model model:
+        :param iris.cube.Cube obs: The objective
+        :param float obs_uncertainty: Fractional, relative (1 sigma) uncertainty in observations
+        :param float repres_uncertainty: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
+         representitiveness of the observations
+        :param float interann_uncertainty: Fractional, relative (1 sigma) uncertainty introduced when using a model run
+         for a year other than that the observations were measured in.
+        :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
         """
         self.model = model
-        self.log_obs = log_obs
         self.obs = obs
-        self.var_obs = var_obs
 
-    def calibrate(self, objective, prior=None):
+        # TODO: Could add an absolute uncertainty term here
+        # Get the square of the absolute uncertainty and broadcast it across the batch (since it's the same for each sample)
+        observational_var = np.reshape(np.square(obs.data * obs_uncertainty), (1, obs.shape[0]))
+        respres_var = np.reshape(np.square(obs.data * repres_uncertainty), (1, obs.shape[0]))
+        interann_var = np.reshape(np.square(obs.data * interann_uncertainty), (1, obs.shape[0]))
+        struct_var = np.reshape(np.square(obs.data * struct_uncertainty), (1, obs.shape[0]))
+        self.total_var = sum([observational_var, respres_var, interann_var, struct_var])
+
+    def sample(self, prior_x, n_samples):
         """
         This is the call that does the actual inference.
 
@@ -39,29 +54,68 @@ class Sampler(ABC):
         pass
 
 
-class tf_tqdm(object):
-    """
-    A progress bar suitable for reporting on progress iterating over a TF dataset
-    """
-    def __init__(self, unit='sample', batch_size=1, total=None):
-        import io
-        self.unit = unit
-        self.batch_size = batch_size
-        self.total = total
-        self.bar = tqdm(file=io.StringIO(), unit=unit, total=int(total))
+class ABCSampler(Sampler):
 
-    def __call__(self, ds, *args, **kwargs):
-        def advance_tqdm(e):
-            def fn():
-                self.bar.update(self.batch_size)
-                # Print the status update manually.
-                print('\r', end='')
-                print(repr(self.bar), end='')
+    def sample(self, prior_x=None, n_samples=1, tolerance=0., threshold=3.):
+        """
+        This is the call that does the actual inference.
 
-            tf.py_function(fn, [], [])
-            return e
+        It should call model.sample over the prior, compare with the objective, and then output a posterior
+        distribution
 
-        return ds.map(advance_tqdm)
+        :param tensorflow_probability.distribution prior_x: The distribution to sample parameters from.
+         By default it will uniformly sample the unit N-D hypercube
+        :param int n_samples: The number of samples to draw
+        :param float tolerance: The fraction of samples which are allowed to be over the threshold
+        :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
+        :return:
+        """
+        import tensorflow_probability as tfp
+        tfd = tfp.distributions
+
+        if prior_x is None:
+            prior_x = tfd.Uniform(low=tf.zeros(self.model.n_params, dtype=tf.float64),
+                                  high=tf.ones(self.model.n_params, dtype=tf.float64))
+
+        return _tf_sample(self.model, self.obs.data, prior_x, n_samples,
+                          self.total_var, tolerance, threshold).numpy()
+
+    def get_implausibility(self, sample_points, batch_size=1):
+        """
+
+        :param model:
+        :param obs:
+        :param sample_points:
+        :param int batch_size:
+        :return:
+        """
+
+        implausibility = _tf_implausibility(self.model, self.obs.data, sample_points,
+                                            self.total_var, batch_size=batch_size,
+                                            pbar=tf_tqdm(batch_size=batch_size,
+                                                         total=sample_points.shape[0])
+                                            )
+
+        return self.model._post_process(implausibility, name_prefix='Implausibility in emulated ')
+
+    def batch_constrain(self, sample_points, tolerance=0., threshold=3.0, batch_size=1):
+        """
+
+        :param float tolerance: The fraction of samples which are allowed to be over the threshold
+        :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
+        :param sample_points:
+        :param int batch_size:
+        :return:
+        """
+
+        valid_samples = _tf_constrain(self.model, self.obs.data, sample_points,
+                                      self.total_var,
+                                      tolerance=tolerance, threshold=threshold,
+                                      batch_size=batch_size,
+                                      pbar=tf_tqdm(batch_size=batch_size,
+                                                   total=sample_points.shape[0]))
+
+        return valid_samples
 
 
 @tf.function
@@ -86,107 +140,20 @@ def constrain(implausibility, tolerance=0., threshold=3.0):
            )
 
 
-def get_implausibility(model, obs, sample_points,
-                       obs_uncertainty=0., interann_uncertainty=0.,
-                       repres_uncertainty=0., struct_uncertainty=0., batch_size=1):
-    """
-
-    Each of the specified uncertainties are assumed to be normal and are added in quadrature
-
-    NOTE - each of the uncertaintes are 1 sigma as compared to previous versions which assumed 2 sigma
-
-    :param model:
-    :param obs:
-    :param sample_points:
-    :param float obs_uncertainty: Fractional, relative (1 sigma) uncertainty in obervations
-    :param float repres_uncertainty: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
-     representitiveness of the observations
-    :param float interann_uncertainty: Fractional, relative (1 sigma) uncertainty introduced when using a model run
-     for a year other than that the observations were measured in.
-    :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
-    :param int batch_size:
-    :return:
-    """
-
-    #TODO: Could add an absolute uncertainty term here
-
-    # Get the square of the absolute uncertainty and broadcast it across the batch (since it's the same for each sample)
-    observational_var = np.broadcast_to(np.square(obs.data * obs_uncertainty), (batch_size, obs.shape[0]))
-    respres_var = np.broadcast_to(np.square(obs.data * repres_uncertainty), (batch_size, obs.shape[0]))
-    interann_var = np.broadcast_to(np.square(obs.data * interann_uncertainty), (batch_size, obs.shape[0]))
-    struct_var = np.broadcast_to(np.square(obs.data * struct_uncertainty), (batch_size, obs.shape[0]))
-
-    implausibility = _tf_implausibility(model, obs.data, sample_points,
-                                        observational_var, interann_var,
-                                        respres_var, struct_var, batch_size=batch_size,
-                                        pbar=tf_tqdm(batch_size=batch_size,
-                                                     total=sample_points.shape[0])
-                                        )
-
-    return model._post_process(implausibility, name_prefix='Implausibility in emulated ')
-
-
-def batch_constrain(model, obs, sample_points,
-                       obs_uncertainty=0., interann_uncertainty=0.,
-                       repres_uncertainty=0., struct_uncertainty=0.,
-                       tolerance=0., threshold=3.0, batch_size=1):
-    """
-
-    Each of the specified uncertainties are assumed to be normal and are added in quadrature
-
-    NOTE - each of the uncertaintes are 1 sigma as compared to previous versions which assumed 2 sigma
-
-    :param model:
-    :param obs:
-    :param sample_points:
-    :param float obs_uncertainty: Fractional, relative (1 sigma) uncertainty in obervations
-    :param float repres_uncertainty: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
-     representitiveness of the observations
-    :param float interann_uncertainty: Fractional, relative (1 sigma) uncertainty introduced when using a model run
-     for a year other than that the observations were measured in.
-    :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
-    :param int batch_size:
-    :return:
-    """
-
-    #TODO: Could add an absolute uncertainty term here
-
-    # Get the square of the absolute uncertainty and broadcast it across the batch (since it's the same for each sample)
-    observational_var = np.broadcast_to(np.square(obs.data * obs_uncertainty), (batch_size, obs.shape[0]))
-    respres_var = np.broadcast_to(np.square(obs.data * repres_uncertainty), (batch_size, obs.shape[0]))
-    interann_var = np.broadcast_to(np.square(obs.data * interann_uncertainty), (batch_size, obs.shape[0]))
-    struct_var = np.broadcast_to(np.square(obs.data * struct_uncertainty), (batch_size, obs.shape[0]))
-
-    valid_samples = _tf_constrain(model, obs.data, sample_points,
-                                  observational_var, interann_var,
-                                  respres_var, struct_var,
-                                  tolerance=tolerance, threshold=threshold,
-                                  batch_size=batch_size,
-                                  pbar=tf_tqdm(batch_size=batch_size,
-                                               total=sample_points.shape[0]))
-
-    return valid_samples
+@tf.function
+def _calc_implausibility(emulator_mean, obs, tot_sd):
+    return tf.divide(tf.abs(tf.subtract(emulator_mean, obs)), tot_sd)
 
 
 @tf.function
-def _tf_constrain(model, obs, sample_points,
-                  observational_var, interann_var, respres_var, struct_var,
+def _tf_constrain(model, obs, sample_points, total_variance,
                   tolerance, threshold, batch_size, pbar):
     """
-
-    Each of the specified uncertainties are assumed to be normal and are added in quadrature
-
-    NOTE - each of the uncertaintes are 1 sigma as compared to previous versions which assumed 2 sigma
 
     :param model:
     :param Tensor obs:
     :param Tensor sample_points:
-    :param Tensor observational_var: Variance in obervations
-    :param Tensor respres_var: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
-     representitiveness of the observations
-    :param Tensor interann_var: Fractional, relative (1 sigma) uncertainty introduced when using a model run
-     for a year other than that the observations were measured in.
-    :param Tensor struct_var: Fractional, relative (1 sigma) uncertainty in the model itself.
+    :param Tensor total_variance: Total variance in observational comparison
     :param int batch_size:
     :return:
     """
@@ -201,10 +168,8 @@ def _tf_constrain(model, obs, sample_points,
             # Get batch prediction
             emulator_mean, emulator_var = model._tf_predict(data)
 
-            implausibility = _calc_implausibility(emulator_mean, obs,
-                                                  emulator_var, interann_var,
-                                                  observational_var, respres_var,
-                                                  struct_var)
+            tot_sd = tf.sqrt(tf.add(emulator_var, total_variance))
+            implausibility = _calc_implausibility(emulator_mean, obs, tot_sd)
 
             valid_samples = constrain(implausibility, tolerance, threshold)
             all_valid = tf.concat([all_valid, valid_samples], 0)
@@ -213,31 +178,14 @@ def _tf_constrain(model, obs, sample_points,
 
 
 @tf.function
-def _calc_implausibility(emulator_mean, obs, emulator_var, interann_var, observational_var, respres_var, struct_var):
-    tot_sd = tf.sqrt(tf.add_n([emulator_var, observational_var, respres_var, interann_var, struct_var]))
-    implausibility = tf.divide(tf.abs(tf.subtract(emulator_mean, obs)), tot_sd)
-    return implausibility
-
-
-@tf.function
-def _tf_implausibility(model, obs, sample_points,
-                       observational_var, interann_var,
-                       respres_var, struct_var, batch_size, pbar):
+def _tf_implausibility(model, obs, sample_points, total_variance,
+                       batch_size, pbar):
     """
-
-    Each of the specified uncertainties are assumed to be normal and are added in quadrature
-
-    NOTE - each of the uncertaintes are 1 sigma as compared to previous versions which assumed 2 sigma
 
     :param model:
     :param Tensor obs:
     :param Tensor sample_points:
-    :param Tensor observational_var: Variance in obervations
-    :param Tensor respres_var: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
-     representitiveness of the observations
-    :param Tensor interann_var: Fractional, relative (1 sigma) uncertainty introduced when using a model run
-     for a year other than that the observations were measured in.
-    :param Tensor struct_var: Fractional, relative (1 sigma) uncertainty in the model itself.
+    :param Tensor total_variance: Total variance in observational comparison
     :param int batch_size:
     :return:
     """
@@ -253,48 +201,57 @@ def _tf_implausibility(model, obs, sample_points,
             # Get batch prediction
             emulator_mean, emulator_var = model._tf_predict(data)
 
-            implausibility = _calc_implausibility(emulator_mean, obs,
-                                                  emulator_var, interann_var,
-                                                  observational_var, respres_var,
-                                                  struct_var)
+            tot_sd = tf.sqrt(tf.add(emulator_var, total_variance))
+            implausibility = _calc_implausibility(emulator_mean, obs, tot_sd)
 
             all_implausibility = tf.concat([all_implausibility, implausibility], 0)
 
     return all_implausibility
 
 
+# TODO SEPARETLY - Do this without tolerance and threshold by calculating the actual probability and accepting/rejecting against a uniform dist
+
 @tf.function
-def _tf_stats(model, sample_points, batch_size, pbar):
+def _tf_sample(model, obs, dist, n_sample_points, total_variance,
+                  tolerance, threshold):
+    """
+
+    :param model:
+    :param Tensor obs:
+    :param Tensor sample_points:
+    :param Tensor total_variance: Total variance in observational comparison
+    :param int batch_size:
+    :return:
+    """
     with tf.device('/gpu:{}'.format(model._GPU)):
-        sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
-        dataset = sample_T.batch(batch_size)
-        n_samples = tf.shape(sample_points)[0]
+        samples = tf.zeros((0, 2), dtype=tf.float64)
+        i0 = tf.constant(0)
 
-        tot_s = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
-        tot_s2 = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
-
-        for data in pbar(dataset):
-            # Get batch prediction
-            emulator_mean, _ = model._tf_predict(data)
-
-            # Get sum of x and sum of x**2
-            tot_s += tf.reduce_sum(emulator_mean, axis=0)
-            tot_s2 += tf.reduce_sum(tf.square(emulator_mean), axis=0)
-
-    n_samples = tf.cast(n_samples, dtype=model.dtype)  # Make this a float to allow division
-    # Calculate the resulting first two moments
-    mean = tot_s / n_samples
-    sd = tf.sqrt((tot_s2 - (tot_s * tot_s) / n_samples) / (n_samples - 1))
-
-    return mean, sd
+        _, all_samples = tf.while_loop(
+            lambda i, m: i < n_sample_points,
+            lambda i, m: [i + 1,
+                          tf.concat([m, get_valid_sample(model, obs, dist, threshold, tolerance, total_variance)],
+                                    axis=0)],
+            loop_vars=[i0, samples],
+            shape_invariants=[i0.get_shape(), tf.TensorShape([None, 2])])
+    return all_samples
 
 
-def batch_stats(model, sample_points, batch_size=1):
-    mean, sd = _tf_stats(model, tf.constant(sample_points),
-                         tf.constant(batch_size, dtype=tf.int64),
-                         pbar=tf_tqdm(batch_size=batch_size,
-                                      total=sample_points.shape[0]))
-    # Wrap the results in a cube (but pop off the sample dim which will always
-    #  only be one in this case
-    return (model._post_process(mean, 'Ensemble mean ')[0],
-            model._post_process(sd, 'Ensemble standard deviation in ')[0])
+@tf.function()
+def get_valid_sample(model, obs, dist, threshold, tolerance, total_variance):
+    valid = dist.sample()
+    valid = tf.while_loop(
+        lambda x: tf.math.logical_not(is_valid_sample(model, obs, x, threshold, tolerance, total_variance)),
+        lambda x: (dist.sample(),),
+        loop_vars=(valid,)
+    )
+    return tf.reshape(valid, (1, -1))
+
+
+@tf.function
+def is_valid_sample(model, obs, sample, threshold, tolerance, total_variance):
+    emulator_mean, emulator_var = model._tf_predict(tf.reshape(sample, (1, -1)))
+    tot_sd = tf.sqrt(tf.add(emulator_var, total_variance))
+    implausibility = _calc_implausibility(emulator_mean, obs, tot_sd)
+    valid = constrain(implausibility, tolerance, threshold)[0]
+    return valid

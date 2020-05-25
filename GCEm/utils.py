@@ -1,4 +1,6 @@
 import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
 
 
 def ensure_bounds(cube):
@@ -157,3 +159,28 @@ def ensemble_collocate(ensemble, observations, member_dimension='job'):
         col_members.append(new_c)
     col_ensemble = col_members.concatenate_cube()
     return col_ensemble
+
+
+class tf_tqdm(object):
+    """
+    A progress bar suitable for reporting on progress iterating over a TF dataset
+    """
+    def __init__(self, unit='sample', batch_size=1, total=None):
+        import io
+        self.unit = unit
+        self.batch_size = batch_size
+        self.total = total
+        self.bar = tqdm(file=io.StringIO(), unit=unit, total=int(total))
+
+    def update(self):
+        self.bar.update(self.batch_size)
+        # Print the status update manually.
+        print('\r', end='')
+        print(repr(self.bar), end='')
+
+    def __call__(self, ds, *args, **kwargs):
+        def advance_tqdm(e):
+            tf.py_function(self.update, [], [])
+            return e
+
+        return ds.map(advance_tqdm)

@@ -17,12 +17,12 @@ class Model(ABC):
 
     """
 
-    def __init__(self, training_data, name='', GPU=0):
+    def __init__(self, training_data, n_params, name='', gpu=0, *args, **kwargs):
         """
 
         :param iris.cube.Cube training_data: The training data - the leading dimension should represent training samples
         :param str name: Human readable name for the model
-        :param int GPU: The machine GPU to assign this model to
+        :param int gpu: The machine GPU to assign this model to
         """
         import iris.cube
 
@@ -35,8 +35,18 @@ class Model(ABC):
             self.training_data = training_data
             self.name = name
 
+        self.n_params = n_params
         self.dtype = training_data.dtype
-        self._GPU = GPU
+        self._GPU = gpu
+        self._structure = self._construct(*args, **kwargs)
+
+    @abstractmethod
+    def _construct(self, *args, **kwargs):
+        """
+        Construct the model and compile if necessary (but don't train it yet)
+        :return:
+        """
+        pass
 
     def _post_process(self, data, name_prefix='Emulated '):
         """
@@ -69,7 +79,7 @@ class Model(ABC):
         return out
 
     @abstractmethod
-    def train(self, X, params=None, verbose=False):
+    def train(self, X, verbose=False):
         """
         Train on the training data
         :return:
@@ -96,3 +106,52 @@ class Model(ABC):
         :return:
         """
         pass
+
+    def batch_stats(self, sample_points, batch_size=1):
+        """
+        Return mean and standard deviation in model predictions over samples,
+         without storing the intermediate predicions in memory to enable
+         evaluating large models over more samples than could fit in memory
+
+        :param sample_points:
+        :param int batch_size:
+        :return:
+        """
+        from GCEm.utils import tf_tqdm
+
+        # TODO: Make sample points optional and just sample from a uniform distribution if not provided
+        mean, sd = _tf_stats(self, tf.constant(sample_points),
+                             tf.constant(batch_size, dtype=tf.int64),
+                             pbar=tf_tqdm(batch_size=batch_size,
+                                          total=sample_points.shape[0]))
+        # Wrap the results in a cube (but pop off the sample dim which will always
+        #  only be one in this case
+        return (self._post_process(mean, 'Ensemble mean ')[0],
+                self._post_process(sd, 'Ensemble standard deviation in ')[0])
+
+
+@tf.function
+def _tf_stats(model, sample_points, batch_size, pbar):
+    with tf.device('/gpu:{}'.format(model._GPU)):
+        sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
+        dataset = sample_T.batch(batch_size)
+        n_samples = tf.shape(sample_points)[0]
+
+        tot_s = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
+        tot_s2 = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
+
+        for data in pbar(dataset):
+            # Get batch prediction
+            emulator_mean, _ = model._tf_predict(data)
+
+            # Get sum of x and sum of x**2
+            tot_s += tf.reduce_sum(emulator_mean, axis=0)
+            tot_s2 += tf.reduce_sum(tf.square(emulator_mean), axis=0)
+
+    n_samples = tf.cast(n_samples, dtype=model.dtype)  # Make this a float to allow division
+    # Calculate the resulting first two moments
+    mean = tot_s / n_samples
+    sd = tf.sqrt((tot_s2 - (tot_s * tot_s) / n_samples) / (n_samples - 1))
+
+    return mean, sd
+

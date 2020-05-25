@@ -1,49 +1,37 @@
 import unittest
 from GCEm.gp_model import GPModel
-from GCEm.utils import get_uniform_params, get_random_params
+from GCEm.utils import get_uniform_params
+from GCEm.sampler import ABCSampler
 from tests.mock import *
 from numpy.testing import assert_allclose, assert_array_equal
 
 
-class SampleTest(unittest.TestCase):
+class ABCSamplerTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.training_params = get_uniform_params(2)
         self.training_ensemble = get_1d_two_param_cube(self.training_params)
 
-        self.m = GPModel(self.training_ensemble)
+        self.m = GPModel(self.training_ensemble, n_params=2)
         self.m.train(self.training_params)
-
-    def test_batch_stats(self):
-        # Test that the sample_mean function returns the mean of the sample
-        from GCEm.sampler import batch_stats
-
-        sample_params = get_random_params(2)
-        expected_ensemble = get_1d_two_param_cube(sample_params)
-
-        mean, std_dev = batch_stats(self.m, sample_params)
-
-        assert_allclose(mean.data, expected_ensemble.data.mean(axis=0), rtol=1e-1)
-        # This is a really loose test but it needs to be because of the
-        #  stochastic nature of the model and the ensemble points
-        assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=.5)
 
     def test_implausibility_scalar_uncertainty(self):
         # Test the implausibility is correct
-        from GCEm.sampler import get_implausibility
 
         obs_uncertainty = 5.
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data.mean(),
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
         # Calculate the implausbility of the training points from a perturbed
         #  training point. The emulator variance should be zero making testing
         #  easier.
-        implausibility = get_implausibility(self.m, obs, self.training_params,
-                                            obs_uncertainty=obs_uncertainty/obs.data.mean(),
-                                            interann_uncertainty=0.,
-                                            repres_uncertainty=0.,
-                                            struct_uncertainty=0.)
+        implausibility = sampler.get_implausibility(self.training_params)
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
@@ -51,20 +39,21 @@ class SampleTest(unittest.TestCase):
 
     def test_implausibility_interann(self):
         # Test the implausibility is correct
-        from GCEm.sampler import get_implausibility
 
         obs_uncertainty = 5.
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=0.,
+                             interann_uncertainty=obs_uncertainty/obs.data.mean(),
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
         # Calculate the implausbility of the training points from a perturbed
         #  training point. The emulator variance should be zero making testing
         #  easier.
-        implausibility = get_implausibility(self.m, obs, self.training_params,
-                                            obs_uncertainty=0.,
-                                            interann_uncertainty=obs_uncertainty/obs.data.mean(),
-                                            repres_uncertainty=0.,
-                                            struct_uncertainty=0.)
+        implausibility = sampler.get_implausibility(self.training_params)
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
@@ -72,20 +61,21 @@ class SampleTest(unittest.TestCase):
 
     def test_implausibility_repres(self):
         # Test the implausibility is correct
-        from GCEm.sampler import get_implausibility
-
         obs_uncertainty = 5.
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=0.,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=obs_uncertainty/obs.data.mean(),
+                             struct_uncertainty=0.)
+
         # Calculate the implausbility of the training points from a perturbed
         #  training point. The emulator variance should be zero making testing
         #  easier.
-        implausibility = get_implausibility(self.m, obs, self.training_params,
-                                            obs_uncertainty=0.,
-                                            interann_uncertainty=0.,
-                                            repres_uncertainty=obs_uncertainty/obs.data.mean(),
-                                            struct_uncertainty=0.)
+        implausibility = sampler.get_implausibility(self.training_params)
+
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
@@ -93,20 +83,21 @@ class SampleTest(unittest.TestCase):
 
     def test_implausibility_struct(self):
         # Test the implausibility is correct
-        from GCEm.sampler import get_implausibility
 
         obs_uncertainty = 5.
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=0.,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=obs_uncertainty/obs.data.mean())
+
         # Calculate the implausbility of the training points from a perturbed
         #  training point. The emulator variance should be zero making testing
         #  easier.
-        implausibility = get_implausibility(self.m, obs, self.training_params,
-                                            obs_uncertainty=0.,
-                                            interann_uncertainty=0.,
-                                            repres_uncertainty=0.,
-                                            struct_uncertainty=obs_uncertainty/obs.data.mean())
+        implausibility = sampler.get_implausibility(self.training_params)
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
@@ -114,20 +105,21 @@ class SampleTest(unittest.TestCase):
 
     def test_implausibility_vector_uncertainty(self):
         # Test with a vector obs uncertainty
-        from GCEm.sampler import get_implausibility
         obs_uncertainty = self.training_ensemble.data.std(axis=0)
 
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
         # Calculate the implausbility of the training points from a perturbed
         #  training point. The emulator variance should be zero making testing
         #  easier.
-        implausibility = get_implausibility(self.m, obs, self.training_params,
-                                            obs_uncertainty=obs_uncertainty/obs.data,
-                                            interann_uncertainty=0.,
-                                            repres_uncertainty=0.,
-                                            struct_uncertainty=0.)
+        implausibility = sampler.get_implausibility(self.training_params)
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one.
@@ -143,33 +135,21 @@ class SampleTest(unittest.TestCase):
         # Test a bunch of simple cases
         imp = _calc_implausibility(np.asarray([1., 1., 2., 1., -2.]),  # Emulator Mean
                                    np.asarray([1., 1., 1., 2., 1.]),  # Obs
-                                   np.asarray([1., 2., 1., 1., 1.]),  # Emulator var
-                                   np.asarray([1., 1., 1., 1., 1.]),  # Interann var
-                                   np.asarray([1., 1., 1., 1., 1.]),  # Obs var
-                                   np.asarray([1., 1., 1., 1., 1.]),  # respres var
-                                   np.asarray([1., 1., 1., 1., 1.]),  # Struct var
+                                   np.asarray([1., 2., 1., 1., 1.]),  # Tot Std
                                    )
-        assert_allclose(imp, np.asarray([0., 0., 1./np.sqrt(5.), 1./np.sqrt(5.), 3./np.sqrt(5.)]))
+        assert_allclose(imp, np.asarray([0., 0., 1., 1., 3.]))
 
         # Test single value inputs
         imp = _calc_implausibility(np.asarray([1., ]),  # Emulator Mean
                                    np.asarray([1., ]),  # Obs
-                                   np.asarray([1., ]),  # Emulator var
-                                   np.asarray([1., ]),  # Interann var
-                                   np.asarray([1., ]),  # Obs var
-                                   np.asarray([1., ]),  # respres var
-                                   np.asarray([1., ]),  # Struct var
+                                   np.asarray([1., ]),  # Tot var
                                    )
         assert_allclose(imp, np.asarray([0.]))
 
         # Test invalid inputs
         imp = _calc_implausibility(np.asarray([1., ]),  # Emulator Mean
                                    np.asarray([1., ]),  # Obs
-                                   np.asarray([0., ]),  # Emulator var
-                                   np.asarray([0., ]),  # Interann var
-                                   np.asarray([0., ]),  # Obs var
-                                   np.asarray([0., ]),  # respres var
-                                   np.asarray([0., ]),  # Struct var
+                                   np.asarray([0., ]),  # Tot var
                                    )
         assert_allclose(imp, np.asarray([np.nan]))
 
@@ -195,21 +175,22 @@ class SampleTest(unittest.TestCase):
     def test_batch_constrain(self):
         # Test that batch constrain returns the correct boolean array for
         #  the given model, obs and params
-        from GCEm.sampler import batch_constrain
         obs_uncertainty = self.training_ensemble.data.std(axis=0)
 
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
         # Calculate the implausbility of the training points from a perturbed
         #  training point. The emulator variance should be zero making testing
         #  easier.
-        valid_samples = batch_constrain(self.m, obs, self.training_params,
-                                        obs_uncertainty=obs_uncertainty/obs.data,
-                                        interann_uncertainty=0.,
-                                        repres_uncertainty=0.,
-                                        struct_uncertainty=0.,
-                                        tolerance=0., threshold=2.)
+        valid_samples = sampler.batch_constrain(self.training_params,
+                                                tolerance=0., threshold=2.)
 
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be around one (and hence valid), some neighbouring points are
@@ -221,3 +202,28 @@ class SampleTest(unittest.TestCase):
                                False, False, False, False, False])
 
         assert_array_equal(valid_samples.numpy(), expected)
+
+    def test_sample(self):
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Generate only valid samples
+        valid_samples = sampler.sample(n_samples=100, tolerance=0., threshold=2.)
+
+        self.assert_(valid_samples.shape == (100, 2))
+
+        # Constrain them all - they should all be valid
+        are_valid = sampler.batch_constrain(valid_samples,
+                                            tolerance=0., threshold=2.)
+
+        self.assert_(are_valid.numpy().all())

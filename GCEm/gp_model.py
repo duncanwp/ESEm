@@ -1,6 +1,6 @@
-import numpy as np
 import tensorflow as tf
 from .model import Model
+import gpflow
 
 
 class GPModel(Model):
@@ -15,30 +15,22 @@ class GPModel(Model):
         self.dtype = default_float()
         self.training_data = self.training_data.astype(self.dtype)
 
-    def train(self, X, params=None, verbose=False):
+    def _construct(self, *args, **kwargs):
+        # TODO: A lot of this needs to be optional somehow
+        return gpflow.kernels.RBF(lengthscales=[0.5]*self.n_params, variance=0.01) + \
+            gpflow.kernels.Linear(variance=[1.]*self.n_params) + \
+            gpflow.kernels.Polynomial(variance=[1.]*self.n_params) + \
+            gpflow.kernels.Bias()
+
+    def train(self, X, verbose=False):
         with tf.device('/gpu:{}'.format(self._GPU)):
-            import gpflow
-            
-            if params is None:
-                n_params = X.shape[1]
-                params = np.arange(n_params)
-            else:
-                n_params = len(params)
-            
-            if verbose:
-                print("Fitting using dimensions: {}".format([params]))
 
             # Uses L-BFGS-B by default
             opt = gpflow.optimizers.Scipy()
 
-            # TODO: A lot of this needs to be optional somehow
-            k = gpflow.kernels.RBF(lengthscales=[0.5]*n_params, variance=0.01, active_dims=params) + \
-                gpflow.kernels.Linear(variance=[1.]*n_params, active_dims=params) + \
-                gpflow.kernels.Polynomial(variance=[1.]*n_params, active_dims=params) + \
-                gpflow.kernels.Bias(active_dims=params)
-
             Y_flat = self.training_data.reshape((self.training_data.shape[0], -1))
-            self.model = gpflow.models.GPR(data=(X, Y_flat), kernel=k)
+            # TODO: Look at the noise_variance term here
+            self.model = gpflow.models.GPR(data=(X, Y_flat), kernel=self._structure, noise_variance=1e-05)
 
             opt.minimize(self.model.training_loss,
                          variables=self.model.trainable_variables,
