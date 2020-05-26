@@ -32,7 +32,7 @@ class GPModel(Model):
                                  noise_variance=tf.constant(noise_variance, dtype=self.dtype))
 
     def train(self, verbose=False, **kwargs):
-        with tf.device('/gpu:{}'.format(self._GPU)):
+        with self.tf_device_context:
 
             # Uses L-BFGS-B by default
             opt = gpflow.optimizers.Scipy()
@@ -47,5 +47,6 @@ class GPModel(Model):
                 self._post_process(var.numpy(), 'Variance in emulated '))
 
     def _tf_predict(self, *args, **kwargs):
-        return self.model.predict_y(*args, **kwargs)
+        with self.tf_device_context:
+            return self.model.predict_y(*args, **kwargs)
 

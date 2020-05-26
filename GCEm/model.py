@@ -26,6 +26,7 @@ class Model(ABC):
         :param int gpu: The machine GPU to assign this model to
         """
         import iris.cube
+        from contextlib import nullcontext
 
         if isinstance(training_data, iris.cube.Cube):
             self.training_cube = training_data
@@ -39,7 +40,8 @@ class Model(ABC):
         self.training_params = training_params
         self.n_params = training_params.shape[1]
         self.dtype = training_data.dtype
-        self._GPU = gpu
+        # Set the GPU to use (if provided)
+        self.tf_device_context = tf.device('/gpu:{}'.format(gpu)) if gpu is not None else nullcontext
 
         # Useful for whitening the training data
         self.training_std_dev = np.std(self.training_data.data, axis=0, keepdims=True)
@@ -153,12 +155,12 @@ class Model(ABC):
         :return:
         """
         from GCEm.utils import tf_tqdm
-
-        # TODO: Make sample points optional and just sample from a uniform distribution if not provided
-        mean, sd = _tf_stats(self, tf.constant(sample_points),
-                             tf.constant(batch_size, dtype=tf.int64),
-                             pbar=tf_tqdm(batch_size=batch_size,
-                                          total=sample_points.shape[0]))
+        with self.tf_device_context:
+            # TODO: Make sample points optional and just sample from a uniform distribution if not provided
+            mean, sd = _tf_stats(self, tf.constant(sample_points),
+                                 tf.constant(batch_size, dtype=tf.int64),
+                                 pbar=tf_tqdm(batch_size=batch_size,
+                                              total=sample_points.shape[0]))
         # Wrap the results in a cube (but pop off the sample dim which will always
         #  only be one in this case
         return (self._post_process(mean.numpy(), 'Ensemble mean ')[0],
@@ -167,21 +169,20 @@ class Model(ABC):
 
 @tf.function
 def _tf_stats(model, sample_points, batch_size, pbar):
-    with tf.device('/gpu:{}'.format(model._GPU)):
-        sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
-        dataset = sample_T.batch(batch_size)
-        n_samples = tf.shape(sample_points)[0]
+    sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
+    dataset = sample_T.batch(batch_size)
+    n_samples = tf.shape(sample_points)[0]
 
-        tot_s = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
-        tot_s2 = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
+    tot_s = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
+    tot_s2 = tf.constant(0., dtype=model.dtype)  # Proportion of valid samples required
 
-        for data in pbar(dataset):
-            # Get batch prediction
-            emulator_mean, _ = model._tf_predict(data)
+    for data in pbar(dataset):
+        # Get batch prediction
+        emulator_mean, _ = model._tf_predict(data)
 
-            # Get sum of x and sum of x**2
-            tot_s += tf.reduce_sum(emulator_mean, axis=0)
-            tot_s2 += tf.reduce_sum(tf.square(emulator_mean), axis=0)
+        # Get sum of x and sum of x**2
+        tot_s += tf.reduce_sum(emulator_mean, axis=0)
+        tot_s2 += tf.reduce_sum(tf.square(emulator_mean), axis=0)
 
     n_samples = tf.cast(n_samples, dtype=model.dtype)  # Make this a float to allow division
     # Calculate the resulting first two moments

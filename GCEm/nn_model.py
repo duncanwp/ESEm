@@ -89,13 +89,16 @@ class NNModel(Model):
         :param float validation_split: The proportion of training data to use for validation
         :return:
         """
-        self.model.fit(self.training_params, self.training_data,
-                       batch_size=batch_size, epochs=epochs,
-                       validation_split=validation_split, **kwargs)
+        with self.tf_device_context:
+            self.model.fit(self.training_params, self.training_data,
+                           batch_size=batch_size, epochs=epochs,
+                           validation_split=validation_split, **kwargs)
 
     def predict(self, *args, **kwargs):
-        return self._post_process(self.model.predict(*args, **kwargs)), None
+        with self.tf_device_context:
+            return self._post_process(self.model.predict(*args, **kwargs)), None
 
     def _tf_predict(self, *args, **kwargs):
-        # This only works with the tf.keras API
-        return self.model.predict(*args, **kwargs), None
+        with self.tf_device_context:
+            # This only works with the tf.keras API
+            return self.model.predict(*args, **kwargs), None
