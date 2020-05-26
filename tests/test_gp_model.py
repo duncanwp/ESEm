@@ -102,14 +102,14 @@ class Simple2DTest(unittest.TestCase, GPTest):
     def setUpClass(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
 
-        ensemble = get_2d_three_param_cube(params)
+        ensemble = get_three_param_cube(params)
         m = GPModel(params, ensemble)
         m.train()
 
         cls.model = m
         cls.params = params
         cls.test_params = test
-        cls.eval_fn = eval_2d_cube
+        cls.eval_fn = eval_cube
 
 
 class Simple32bitTest(unittest.TestCase, GPTest):
@@ -121,7 +121,7 @@ class Simple32bitTest(unittest.TestCase, GPTest):
     def setUpClass(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
 
-        ensemble = get_2d_three_param_cube(params)
+        ensemble = get_three_param_cube(params)
         # Create a new, ensemble at lower precision
         ensemble = ensemble.copy(data=ensemble.data.astype('float32'))
         m = GPModel(params, ensemble)
@@ -130,7 +130,7 @@ class Simple32bitTest(unittest.TestCase, GPTest):
         cls.model = m
         cls.params = params
         cls.test_params = test
-        cls.eval_fn = eval_2d_cube
+        cls.eval_fn = eval_cube
 
 
 if __name__ == '__main__':

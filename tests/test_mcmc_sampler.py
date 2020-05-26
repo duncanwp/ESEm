@@ -86,12 +86,13 @@ class MCMCSamplerTest(unittest.TestCase):
                               repres_uncertainty=0.,
                               struct_uncertainty=0.)
 
-        # Generate only valid samples
-        valid_samples = sampler.sample(n_samples=100)
+        # Generate only valid samples, don't bother with burn-in
+        valid_samples = sampler.sample(n_samples=10,
+                                       mcmc_kwargs=dict(num_burnin_steps=0))
 
         # Just check the shape. We test the actual probabilities above
         #  and we don't need to test the tf mcmc code
-        self.assert_(valid_samples.shape == (100, 2))
+        self.assert_(valid_samples.shape == (10, 2))
 
     def test_simple_sample(self):
         from iris.cube import Cube
@@ -107,6 +108,8 @@ class MCMCSamplerTest(unittest.TestCase):
                               repres_uncertainty=0.,
                               struct_uncertainty=0.)
 
-        samples = sampler.sample(n_samples=100)
+        # Use as few burn-in steps as we can get away with to speed up the test
+        samples = sampler.sample(n_samples=100,
+                                 mcmc_kwargs=dict(num_burnin_steps=10))
         Zs = simple_polynomial_fn_two_param(*samples.T)
         assert_allclose(Zs.mean(), 2., rtol=0.1)

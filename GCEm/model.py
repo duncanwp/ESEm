@@ -88,7 +88,7 @@ class Model(ABC):
         Reshape output if needed and wrap back in a cube if one was provided
          for training
 
-        :param tf.Tensor data: Model output to post-process
+        :param np.array data: Model output to post-process
         :param args:
         :param kwargs:
         :return:
@@ -97,7 +97,7 @@ class Model(ABC):
         from iris.coords import DimCoord
         # Reshape the output to the original shape, with a leading ensemble
         #  dimension in case we're outputting a batch of samples
-        out = data.numpy().reshape((-1,) + self.training_data.shape[1:])
+        out = data.reshape((-1,) + self.training_cube.shape[1:])
         if self.training_cube is not None:
             # Create a coordinate for the sample dimension (which could be a different length to the original)
             sample_coord = [(DimCoord(np.arange(out.shape[0]), long_name="sample"), 0)]
@@ -161,8 +161,8 @@ class Model(ABC):
                                           total=sample_points.shape[0]))
         # Wrap the results in a cube (but pop off the sample dim which will always
         #  only be one in this case
-        return (self._post_process(mean, 'Ensemble mean ')[0],
-                self._post_process(sd, 'Ensemble standard deviation in ')[0])
+        return (self._post_process(mean.numpy(), 'Ensemble mean ')[0],
+                self._post_process(sd.numpy(), 'Ensemble standard deviation in ')[0])
 
 
 @tf.function

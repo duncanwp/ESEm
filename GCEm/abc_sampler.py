@@ -52,7 +52,7 @@ class ABCSampler(Sampler):
                                                          total=sample_points.shape[0])
                                             )
 
-        return self.model._post_process(implausibility, name_prefix='Implausibility in emulated ')
+        return self.model._post_process(implausibility.numpy(), name_prefix='Implausibility in emulated ')
 
     def batch_constrain(self, sample_points, tolerance=0., threshold=3.0, batch_size=1):
         """

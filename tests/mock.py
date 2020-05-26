@@ -19,7 +19,7 @@ def make_dummy_1d_cube(job_n=0):
     return cube
 
 
-def make_dummy_2d_cube(job_n=0):
+def make_dummy_cube(job_n=0, lat_len=20, lon_len=30, time_len=0):
     """
     Makes a dummy 2d cube filled with dummy data. It has a realistic lat and lon
     coordinates and a scalar job coordinate to make ensemble stacking convenient
@@ -27,8 +27,8 @@ def make_dummy_2d_cube(job_n=0):
     from iris.cube import Cube
     from iris.coords import DimCoord
 
-    y = np.linspace(-90., 90., 20)
-    x = np.linspace(0., 360., 30, endpoint=False)
+    y = np.linspace(-90., 90., lat_len)
+    x = np.linspace(0., 360., lon_len, endpoint=False)
     xx, yy = np.meshgrid(x, y)
 
     data = np.sin(np.deg2rad(xx)) * np.cos(np.deg2rad(yy))
@@ -37,8 +37,15 @@ def make_dummy_2d_cube(job_n=0):
     longitude = DimCoord(x, standard_name='longitude', units='degrees', circular=True)
     job = DimCoord(job_n, var_name='job')
 
-    cube = Cube(data.reshape(1, 20, 30),
-                dim_coords_and_dims=[(job, 0), (latitude, 1), (longitude, 2)])
+    if time_len > 0:
+        time = DimCoord(np.arange(time_len), standard_name='time')
+        # Scale the data along the time dimension using a half-period annual cycle
+        data = data[..., np.newaxis] * np.sin(time.points / 12. * np.pi)
+        cube = Cube(data.reshape(1, lat_len, lon_len, time_len),
+                    dim_coords_and_dims=[(job, 0), (latitude, 1), (longitude, 2), (time, 3)])
+    else:
+        cube = Cube(data.reshape(1, lat_len, lon_len),
+                    dim_coords_and_dims=[(job, 0), (latitude, 1), (longitude, 2)])
 
     return cube
 
@@ -85,7 +92,7 @@ def get_1d_two_param_cube(params=None, n_samples=10):
     return ensemble
 
 
-def get_2d_three_param_cube(params=None, n_samples=10):
+def get_three_param_cube(params=None, n_samples=10, **kwargs):
     """
     Create an ensemble of 2d cubes perturbed over three idealised parameter
     spaces. One of params or n_samples must be provided
@@ -100,7 +107,7 @@ def get_2d_three_param_cube(params=None, n_samples=10):
 
     cubes = CubeList([])
     for j, p in enumerate(params):
-        c = make_dummy_2d_cube(j)
+        c = make_dummy_cube(j, **kwargs)
         # Perturb base data to represent some change in a parameter
         c.data *= simple_polynomial_fn_three_param(*p)
         cubes.append(c)
@@ -123,14 +130,14 @@ def eval_1d_cube(params, **kwargs):
     return cube
 
 
-def eval_2d_cube(params, **kwargs):
+def eval_cube(params, **kwargs):
     """
     Create a single 2D cube representing the 'true' value for a given parameter
 
     :param np.array params: A set of params to represent the 'truth'
     :return:
     """
-    cube = make_dummy_2d_cube(**kwargs)
+    cube = make_dummy_cube(**kwargs)
     # Scale the base data
     cube.data *= simple_polynomial_fn_three_param(*params)
 

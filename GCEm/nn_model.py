@@ -1,5 +1,6 @@
 import numpy as np
 from .model import Model
+import tensorflow as tf
 
 
 class NNModel(Model):
@@ -7,6 +8,10 @@ class NNModel(Model):
     Perform emulation using a simple two layer convolutional NN.
     Note that X should include both the train and validation data
     """
+
+    def __init__(self, *args, **kwargs):
+        super(NNModel, self).__init__(*args, **kwargs)
+        self.dtype = tf.float32
 
     def _pre_process(self):
         # Normalise the training data
@@ -16,16 +21,30 @@ class NNModel(Model):
         # pass
         self.training_data = self.whiten(self.training_data)
 
+        # Check the training data is the right shape for the ConvNet
+        if self.training_data.ndim < 3:
+            raise ValueError("Training data must have at least three "
+                             "dimensions (including the sample dimension)")
+        elif self.training_data.ndim == 3:
+            self.training_data = self.training_data[..., np.newaxis]
+        elif self.training_data.ndim > 4:
+            raise ValueError("Training data must have at most four dimensions"
+                             "(including the sample dimension)")
+
     def _post_process(self, data, *args, **kwargs):
+        # If the last (color) dimension is one then pop it off (we added it
+        #  in pre-processing
+        if data.shape[-1] == 1:
+            data = data[..., 0]
         scaled_data = self.un_whiten(data)
         return super(NNModel, self)._post_process(scaled_data, *args, **kwargs)
 
-    def _construct(self, filters=12, learning_rate=1e-2, decay=0.01,
+    def _construct(self, filters=12, learning_rate=1e-3, decay=0.01,
                    kernel_size=(3, 5), loss='mean_squared_error',
                    activation='tanh', optimizer='RMSprop'):
-        from keras.layers import Dense, Input, Reshape, Conv2DTranspose
-        from keras.models import Model
-        from keras.optimizers import Adam, RMSprop
+        from tensorflow.keras.layers import Dense, Input, Reshape, Conv2DTranspose
+        from tensorflow.keras.models import Model
+        from tensorflow.keras.optimizers import Adam, RMSprop
 
         if optimizer == 'RMSprop':
             optimizer = RMSprop
@@ -34,31 +53,24 @@ class NNModel(Model):
         else:
             raise ValueError("Invalid optimizer specified: {}".format(optimizer))
 
-        shape = self.training_data.shape[1:]
-        # FIXME - I think the problem here is the lack of a 'color' channel
+        # build a simple decoder model
         latent_inputs = Input((self.n_params, ))
-        x = Dense(np.product(shape), activation='relu')(latent_inputs)
-        x = Reshape(shape)(x)
+        intermediate_shape = self.training_data.shape[1:-1] + (filters, )
+        x = Dense(np.product(intermediate_shape), activation='relu')(latent_inputs)
+        x = Reshape(intermediate_shape)(x)
 
-        x = Conv2DTranspose(filters=6, input_shape=shape,
+        x = Conv2DTranspose(filters=filters,
                             kernel_size=kernel_size,
                             activation='relu',
                             strides=1,
-                            padding='same', data_format='channels_first')(x)
+                            padding='same', data_format='channels_last')(x)
 
-        outputs = Conv2DTranspose(filters=filters, input_shape=shape,
+        outputs = Conv2DTranspose(filters=self.training_data.shape[-1],
                                   kernel_size=kernel_size,
-                                  activation='sigmoid',
+                                  activation=activation,
                                   strides=1,
-                                  padding='same', data_format='channels_first')(x)
+                                  padding='same', data_format='channels_last')(x)
 
-        # build simple decoder model
-        # TODO: This simple dense network sort-of worked, and may have got close with lots of tuning...
-        # latent_inputs = Input(shape=(self.n_params,), name='params')
-        # x = Dense(np.product(shape), activation=activation)(latent_inputs)
-        # x = Dense(np.product(shape), activation='linear')(x)
-        # outputs = Reshape(shape)(x)
-        #
         # instantiate decoder model
         decoder = Model(latent_inputs, outputs, name='decoder')
 
@@ -85,7 +97,5 @@ class NNModel(Model):
         return self._post_process(self.model.predict(*args, **kwargs)), None
 
     def _tf_predict(self, *args, **kwargs):
-        # As far as I can see Keras doesn't have a way for plugging in to this
-        #  I could probably use tf.keras though
+        # This only works with the tf.keras API
         return self.model.predict(*args, **kwargs), None
-
