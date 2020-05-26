@@ -21,7 +21,7 @@ class GPTest(object):
 
         pred_m, pred_var = self.model._tf_predict(self.test_params[0:1])
 
-        assert_allclose(expected.data.reshape(1, -1), pred_m.numpy(), rtol=1e-3)
+        assert_allclose(expected.data, pred_m.numpy(), rtol=1e-3)
 
         # Assert that the mean is within the variance
         # TODO: I'm not sure exactly how to test this...

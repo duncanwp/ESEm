@@ -97,22 +97,28 @@ class Model(ABC):
         """
         from iris.cube import Cube
         from iris.coords import DimCoord
-        # Reshape the output to the original shape, with a leading ensemble
-        #  dimension in case we're outputting a batch of samples
-        out = data.reshape((-1,) + self.training_cube.shape[1:])
-        if self.training_cube is not None:
+
+        if isinstance(data, tf.Tensor):
+            data = data.numpy()
+
+        if (data is not None) and (data.size > 0) and (self.training_cube is not None):
+
+            # Ensure we have a leading sample dimension
+            data = data.reshape((-1,) + self.training_cube.shape[1:])
+
             # Create a coordinate for the sample dimension (which could be a different length to the original)
-            sample_coord = [(DimCoord(np.arange(out.shape[0]), long_name="sample"), 0)]
+            sample_coord = [(DimCoord(np.arange(data.shape[0]), long_name="sample"), 0)]
             # Pull out the other coordinates - we can't rely on these being in order unfortunately, but we know the
             #  member dimension was the 0th
             other_coords = [(c, self.training_cube.coord_dims(c)) for c in self.training_cube.dim_coords if
                             self.training_cube.coord_dims(c) != (0,)]
-            out = Cube(out,
+            out = Cube(data,
                        long_name=name_prefix + self.training_cube.name(),
                        units=self.training_cube.units,
                        dim_coords_and_dims=other_coords + sample_coord,
                        aux_coords_and_dims=self.training_cube._aux_coords_and_dims)
-
+        else:
+            out = data
         return out
 
     @abstractmethod
@@ -123,14 +129,11 @@ class Model(ABC):
         """
         pass
 
-    @abstractmethod
-    def predict(self):
-        """
-        Basically just a wrapper around 'predict' and 'predict_y'
+    def predict(self, *args, **kwargs):
+        mean, var = self._tf_predict(*args, **kwargs)
 
-        :return:
-        """
-        pass
+        return (self._post_process(mean, 'Emulated '),
+                self._post_process(var, 'Variance in emulated '))
 
     @property
     @abstractmethod

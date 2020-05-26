@@ -23,16 +23,20 @@ class Sampler(ABC):
          for a year other than that the observations were measured in.
         :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
         """
+        from iris.cube import Cube
         self.model = model
-        self.obs = obs
+
+        if isinstance(obs, Cube):
+            obs = obs.data
+
+        self.obs = obs.astype(model.dtype)
 
         # TODO: Could add an absolute uncertainty term here
-        # Get the square of the absolute uncertainty and broadcast it across the batch
-        #  (since it's the same for each sample)
-        observational_var = np.reshape(np.square(obs.data * obs_uncertainty), (1, obs.shape[0]))
-        respres_var = np.reshape(np.square(obs.data * repres_uncertainty), (1, obs.shape[0]))
-        interann_var = np.reshape(np.square(obs.data * interann_uncertainty), (1, obs.shape[0]))
-        struct_var = np.reshape(np.square(obs.data * struct_uncertainty), (1, obs.shape[0]))
+        # Get the square of the absolute uncertainty and add a batch dimension
+        observational_var = np.square(self.obs * obs_uncertainty)[np.newaxis, ...]
+        respres_var = np.square(self.obs * repres_uncertainty)[np.newaxis, ...]
+        interann_var = np.square(self.obs * interann_uncertainty)[np.newaxis, ...]
+        struct_var = np.square(self.obs * struct_uncertainty)[np.newaxis, ...]
         self.total_var = sum([observational_var, respres_var, interann_var, struct_var])
 
     def sample(self, prior_x=None, n_samples=1):
@@ -86,7 +90,7 @@ class MCMCSampler(Sampler):
         mcmc_kwargs.setdefault('num_burnin_steps', 1000)
         mcmc_kwargs.setdefault('parallel_iterations', 1)
 
-        samples, log_accept_ratio = _tf_sample(self.model, prior_x, self.obs.data, self.total_var,
+        samples, log_accept_ratio = _tf_sample(self.model, prior_x, self.obs, self.total_var,
                                                n_samples, mcmc_kwargs, kernel_kwargs)
 
         print("Acceptance rate: {}".format(tf.math.exp(tf.minimum(log_accept_ratio, 0.)).numpy().mean()))

@@ -17,7 +17,7 @@ class NNModel(Model):
         # Normalise the training data
         # self.mean_t = self.training_data.mean(axis=0)
         # self.training_data = (self.training_data - self.mean_t)
-        # TODO: Maybe re-weight
+        # TODO: Make whitening, normalizing (and weighting) optional in the constructor
         # pass
         self.training_data = self.whiten(self.training_data)
 
@@ -32,12 +32,13 @@ class NNModel(Model):
                              "(including the sample dimension)")
 
     def _post_process(self, data, *args, **kwargs):
-        # If the last (color) dimension is one then pop it off (we added it
-        #  in pre-processing
-        if data.shape[-1] == 1:
-            data = data[..., 0]
-        scaled_data = self.un_whiten(data)
-        return super(NNModel, self)._post_process(scaled_data, *args, **kwargs)
+        if data is not None:
+            # If the last (color) dimension is one then pop it off (we added it
+            #  in pre-processing
+            if data.shape[-1] == 1:
+                data = data[..., 0]
+            data = self.un_whiten(data)
+        return super(NNModel, self)._post_process(data, *args, **kwargs)
 
     def _construct(self, filters=12, learning_rate=1e-3, decay=0.01,
                    kernel_size=(3, 5), loss='mean_squared_error',
@@ -94,11 +95,7 @@ class NNModel(Model):
                            batch_size=batch_size, epochs=epochs,
                            validation_split=validation_split, **kwargs)
 
-    def predict(self, *args, **kwargs):
-        with self.tf_device_context:
-            return self._post_process(self.model.predict(*args, **kwargs)), None
-
     def _tf_predict(self, *args, **kwargs):
         with self.tf_device_context:
             # This only works with the tf.keras API
-            return self.model.predict(*args, **kwargs), None
+            return self.model(*args, **kwargs), None

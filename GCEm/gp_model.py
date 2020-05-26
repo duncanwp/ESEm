@@ -39,14 +39,13 @@ class GPModel(Model):
             opt.minimize(self.model.training_loss,
                          variables=self.model.trainable_variables,
                          options=dict(disp=verbose, maxiter=100), **kwargs)
-    
-    def predict(self, *args, **kwargs):
-        mean, var = self._tf_predict(*args, **kwargs)
-        # Reshape the output to the original shape (neglecting the param dim)
-        return (self._post_process(mean.numpy(), 'Emulated '),
-                self._post_process(var.numpy(), 'Variance in emulated '))
 
     def _tf_predict(self, *args, **kwargs):
         with self.tf_device_context:
-            return self.model.predict_y(*args, **kwargs)
+            m, v = self.model.predict_y(*args, **kwargs)
+            # Reshape the output to the original shape, with a leading ensemble
+            #  dimension in case we're outputting a batch of samples
+            mean = tf.reshape(m, (-1,) + self.training_data.shape[1:])
+            var = tf.reshape(v, (-1,) + self.training_data.shape[1:])
+            return mean, var
 

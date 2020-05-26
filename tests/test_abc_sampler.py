@@ -76,7 +76,6 @@ class ABCSamplerTest(unittest.TestCase):
         #  easier.
         implausibility = sampler.get_implausibility(self.training_params)
 
-
         # The implausibility for the 10th sample (the one we perturbed around)
         #  should be one - on average
         assert_allclose(implausibility.data[10, :].mean(), 1., rtol=1e-2)
@@ -170,6 +169,31 @@ class ABCSamplerTest(unittest.TestCase):
         assert_array_equal(constrain(implausibility, tolerance=1./5., threshold=0.5),
                            np.asarray([True, False, True]))
 
+    def test_constrain_2d(self):
+        # Test that constrain returns the correct boolean array for 2d obs
+
+        implausibility = np.asarray([[[0., 0., 0., 0., 0.],
+                                     [0., 1., 1., 1., 0.],
+                                     [0., 0., 1., 0., 0.]],
+                                    [[0., 2., 0., 0., 0.],
+                                     [0., 2., 1., 1., 0.],
+                                     [0., 0., 1., 0., 0.]]]
+                                    )
+
+        assert_array_equal(constrain(implausibility, tolerance=0., threshold=3.0),
+                           np.asarray([True, True]))
+        assert_array_equal(constrain(implausibility, tolerance=0., threshold=0.5),
+                           np.asarray([False, False]))
+        assert_array_equal(constrain(implausibility, tolerance=0., threshold=1.0),
+                           np.asarray([True, False]))
+
+        assert_array_equal(constrain(implausibility, tolerance=3./15., threshold=0.5),
+                           np.asarray([False, False]))
+        assert_array_equal(constrain(implausibility, tolerance=4./15., threshold=0.5),
+                           np.asarray([True, False]))
+        assert_array_equal(constrain(implausibility, tolerance=5./15., threshold=0.5),
+                           np.asarray([True, True]))
+
     def test_batch_constrain(self):
         # Test that batch constrain returns the correct boolean array for
         #  the given model, obs and params
@@ -225,3 +249,94 @@ class ABCSamplerTest(unittest.TestCase):
                                             tolerance=0., threshold=2.)
 
         self.assert_(are_valid.numpy().all())
+
+
+class ABCSamplerTest2D(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.training_params = get_uniform_params(3)
+        self.training_ensemble = get_three_param_cube(self.training_params)
+
+        self.m = GPModel(self.training_params, self.training_ensemble)
+        self.m.train()
+
+    def test_implausibility_scalar_uncertainty_interface(self):
+        # Test the interface correctly deals with 2d model and obs
+
+        obs_uncertainty = 5.
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data.mean(),
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        expected_shape = (len(self.training_params), ) + obs.shape
+        self.assert_(implausibility.shape == expected_shape)
+
+    def test_implausibility_vector_uncertainty(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        expected_shape = (len(self.training_params),) + obs.shape
+        self.assert_(implausibility.shape == expected_shape)
+
+    def test_batch_constrain(self):
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        valid_samples = sampler.batch_constrain(self.training_params,
+                                                tolerance=0., threshold=2.)
+
+        expected_shape = (len(self.training_params),)
+        self.assert_(valid_samples.shape == expected_shape)
+
+    def test_sample(self):
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Generate only valid samples
+        valid_samples = sampler.sample(n_samples=100, tolerance=0., threshold=2.)
+
+        self.assert_(valid_samples.shape == (100, 3))

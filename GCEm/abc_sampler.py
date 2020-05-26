@@ -31,7 +31,7 @@ class ABCSampler(Sampler):
             prior_x = tfd.Uniform(low=tf.zeros(self.model.n_params, dtype=tf.float64),
                                   high=tf.ones(self.model.n_params, dtype=tf.float64))
         with self.model.tf_device_context:
-            n_iterations, samples = _tf_sample(self.model, self.obs.data, prior_x, n_samples,
+            n_iterations, samples = _tf_sample(self.model, self.obs, prior_x, n_samples,
                               self.total_var, tolerance, threshold)
         print("Acceptance rate: {}".format(n_samples/n_iterations.numpy()))
         return samples.numpy()
@@ -46,7 +46,7 @@ class ABCSampler(Sampler):
         :return:
         """
         with self.model.tf_device_context:
-            implausibility = _tf_implausibility(self.model, self.obs.data, sample_points,
+            implausibility = _tf_implausibility(self.model, self.obs, sample_points,
                                                 self.total_var, batch_size=batch_size,
                                                 pbar=tf_tqdm(batch_size=batch_size,
                                                              total=sample_points.shape[0])
@@ -64,7 +64,7 @@ class ABCSampler(Sampler):
         :return:
         """
         with self.model.tf_device_context:
-            valid_samples = _tf_constrain(self.model, self.obs.data, sample_points,
+            valid_samples = _tf_constrain(self.model, self.obs, sample_points,
                                           self.total_var,
                                           tolerance=tolerance, threshold=threshold,
                                           batch_size=batch_size,
@@ -81,19 +81,25 @@ def constrain(implausibility, tolerance=0., threshold=3.0):
 
             I < T
 
+        Return True (for a sample) if the number of implausibility measures greater
+         than the threshold is less than or equal to the tolerance
+
     :param np.array implausibility: Distance of each sample from each observation (in S.Ds)
     :param float tolerance: The fraction of samples which are allowed to be over the threshold
     :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
     :return np.array: Boolean array of samples which meet the implausibility criteria
     """
-    # Return True (for a sample) if the number of implausibility measures greater
-    #  than the threshold is less than or equal to the tolerance
-    tolerance = tf.constant(tolerance, dtype=implausibility.dtype)
+    total_obs = tf.cast(tf.reduce_prod(tf.shape(implausibility)[1:]), dtype=implausibility.dtype)
+    # Calculate the absolute tolerance
+    abs_tolerance = tf.multiply(tf.constant(tolerance, dtype=implausibility.dtype), total_obs)
     threshold = tf.constant(threshold, dtype=implausibility.dtype)
-    return tf.less_equal(
-                tf.reduce_sum(tf.cast(tf.greater(implausibility, threshold), dtype=implausibility.dtype), axis=1),
-                tf.multiply(tolerance, tf.cast(tf.shape(implausibility)[1], dtype=tolerance.dtype))
-           )
+
+    # Count the number of implausible observations against the threshold
+    n_implausible = tf.reduce_sum(tf.cast(tf.greater(implausibility, threshold), dtype=implausibility.dtype),
+                                  # Reduce over all dims except the first
+                                  axis=(range(1, len(implausibility.shape))))
+    # Compare with the tolerance
+    return tf.less_equal(n_implausible, abs_tolerance)
 
 
 @tf.function
@@ -147,7 +153,7 @@ def _tf_implausibility(model, obs, sample_points, total_variance,
 
     dataset = sample_T.batch(batch_size)
 
-    all_implausibility = tf.zeros((0, obs.shape[0]), dtype=sample_points.dtype)
+    all_implausibility = tf.zeros((0, ) + obs.shape, dtype=sample_points.dtype)
 
     for data in pbar(dataset):
         # Get batch prediction
