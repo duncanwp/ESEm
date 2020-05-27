@@ -11,5 +11,5 @@ from .gp_model import GPModel
 from .sampler import Sampler
 
 __author__ = "Duncan Watson-Parris"
-__version__ = "0.0.1"
-__status__ = "Dev"
+__version__ = "0.1.0"
+__status__ = "Stable"
