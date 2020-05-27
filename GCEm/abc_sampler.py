@@ -39,12 +39,16 @@ class ABCSampler(Sampler):
     def get_implausibility(self, sample_points, batch_size=1):
         """
 
-        :param model:
-        :param obs:
         :param sample_points:
         :param int batch_size:
         :return:
         """
+        import pandas as pd
+        if isinstance(sample_points, pd.DataFrame):
+            sample_points = sample_points.to_numpy()
+        else:
+            sample_points = sample_points
+
         with self.model.tf_device_context:
             implausibility = _tf_implausibility(self.model, self.obs, sample_points,
                                                 self.total_var, batch_size=batch_size,
@@ -57,12 +61,18 @@ class ABCSampler(Sampler):
     def batch_constrain(self, sample_points, tolerance=0., threshold=3.0, batch_size=1):
         """
 
+        :param sample_points:
         :param float tolerance: The fraction of samples which are allowed to be over the threshold
         :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
-        :param sample_points:
         :param int batch_size:
         :return:
         """
+        import pandas as pd
+        if isinstance(sample_points, pd.DataFrame):
+            sample_points = sample_points.to_numpy()
+        else:
+            sample_points = sample_points
+
         with self.model.tf_device_context:
             valid_samples = _tf_constrain(self.model, self.obs, sample_points,
                                           self.total_var,
@@ -71,7 +81,7 @@ class ABCSampler(Sampler):
                                           pbar=tf_tqdm(batch_size=batch_size,
                                                        total=sample_points.shape[0]))
 
-        return valid_samples
+        return valid_samples.numpy()
 
 
 @tf.function

@@ -3,39 +3,6 @@ import tensorflow as tf
 from tqdm import tqdm
 
 
-def ensure_bounds(cube):
-    if not cube.coord("latitude").has_bounds():
-        cube.coord("latitude").guess_bounds()
-    if not cube.coord("longitude").has_bounds():
-        cube.coord("longitude").guess_bounds()
-
-
-def get_weights(cube):
-    import iris.analysis
-    ensure_bounds(cube)
-
-    return iris.analysis.cartography.area_weights(cube[0, :, :, :], normalize=True)
-
-
-def get_param_mask(X, y, criteria='bic', **kwargs):
-    """
-    Return a boolean mask of the parameters which meet the specified information
-     criteria
-
-    :param np.array X: The input parameters to the model
-    :param np.array y: The outputs
-    :param str criteria: The information criteria to use ('aic' or 'bic')
-    :param kwargs:
-    :return:
-    """
-    from sklearn.linear_model import LassoLarsIC
-    from sklearn.feature_selection import SelectFromModel
-
-    lsvc = LassoLarsIC(criterion=criteria).fit(X, y)
-    model = SelectFromModel(lsvc, prefit=True, **kwargs)
-    return np.where(model.get_support())[0]
-
-
 def add_121_line(ax):
     import numpy as np
     lims = [

@@ -27,6 +27,7 @@ class Model(ABC):
         """
         import iris.cube
         from contextlib import nullcontext
+        import pandas as pd
 
         if isinstance(training_data, iris.cube.Cube):
             self.training_cube = training_data
@@ -37,7 +38,10 @@ class Model(ABC):
             self.training_data = training_data
             self.name = name
 
-        self.training_params = training_params
+        if isinstance(training_params, pd.DataFrame):
+            self.training_params = training_params.to_numpy()
+        else:
+            self.training_params = training_params
         self.n_params = training_params.shape[1]
         self.dtype = training_data.dtype
         # Set the GPU to use (if provided)

@@ -223,7 +223,7 @@ class ABCSamplerTest(unittest.TestCase):
                                True, True, True, True, True,
                                False, False, False, False, False])
 
-        assert_array_equal(valid_samples.numpy(), expected)
+        assert_array_equal(valid_samples, expected)
 
     def test_sample(self):
         # Test that batch constrain returns the correct boolean array for
@@ -248,7 +248,7 @@ class ABCSamplerTest(unittest.TestCase):
         are_valid = sampler.batch_constrain(valid_samples,
                                             tolerance=0., threshold=2.)
 
-        self.assert_(are_valid.numpy().all())
+        self.assert_(are_valid.all())
 
 
 class ABCSamplerTest2D(unittest.TestCase):

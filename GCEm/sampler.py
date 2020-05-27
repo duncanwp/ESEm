@@ -24,9 +24,10 @@ class Sampler(ABC):
         :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
         """
         from iris.cube import Cube
+        from cis.data_io.ungridded_data import UngriddedData
         self.model = model
 
-        if isinstance(obs, Cube):
+        if isinstance(obs, Cube) or isinstance(obs, UngriddedData):
             obs = obs.data
 
         self.obs = obs.astype(model.dtype)
