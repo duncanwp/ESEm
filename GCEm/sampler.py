@@ -15,7 +15,7 @@ class Sampler(ABC):
                  repres_uncertainty=0., struct_uncertainty=0.):
         """
         :param GCEm.model.Model model:
-        :param iris.cube.Cube obs: The objective
+        :param iris.cube.Cube like object obs: The objective
         :param float obs_uncertainty: Fractional, relative (1 sigma) uncertainty in observations
         :param float repres_uncertainty: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
          representitiveness of the observations
@@ -23,11 +23,11 @@ class Sampler(ABC):
          for a year other than that the observations were measured in.
         :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
         """
-        from iris.cube import Cube
-        from cis.data_io.ungridded_data import UngriddedData
         self.model = model
 
-        if isinstance(obs, Cube) or isinstance(obs, UngriddedData):
+        # This tests for 'cube like' objects including CIS ungridded data
+        #  I don't want to have to depend on CIS though to check explicitly
+        if hasattr(obs, 'data') and isinstance(obs.data, np.ndarray):
             obs = obs.data
 
         self.obs = obs.astype(model.dtype)
