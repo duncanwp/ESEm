@@ -27,8 +27,8 @@ class RFModel(Model):
         """
         self.model.fit(X=self.training_params, y=self.training_data)
 
-    def _tf_predict(self):
+    def _tf_predict(self, *args, **kwargs):
         # Requires X_pred to be of shape (n_samples, n_features)
-        m = self.model.predict(test)
+        mean = self.model.predict(*args, **kwargs)
         var = None
         return mean, var
