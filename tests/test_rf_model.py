@@ -61,8 +61,11 @@ class Simple1DTest(unittest.TestCase, RFTest):
     @classmethod
     def setUpClass(cls) -> None:
         params, test = pop_elements(get_uniform_params(2), 10, 12)
-
+        #print(get_uniform_params(2),np.shape(get_uniform_params(2)))
         ensemble = get_1d_two_param_cube(params)
+        print("Print statement!! \n", params)
+        print("Print statement!! \n", test)
+        print(params.shape, ensemble.shape)
         m = RFModel(params, ensemble)
         m.train()
 
@@ -82,6 +85,9 @@ class Simple2DTest(unittest.TestCase, RFTest):
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params)
+        print("Print statement!! \n", params)
+        print("Print statement!! \n", test)
+        print(params.shape, ensemble.shape)
         m = RFModel(params, ensemble)
         m.train()
 
