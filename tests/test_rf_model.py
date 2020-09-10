@@ -11,6 +11,9 @@ class RFTest(object):
      independently in the concrete test classes below. This abstracts the
      different test cases out and allows the model to only be created once
      for each test case.
+
+    N.B. Fixing random_seed=0 when initialising model, else no guarantee
+    that the tolerance will always pass. (RFs use bootstrapping)
     """
 
     def test_simple_predict(self):
@@ -21,7 +24,7 @@ class RFTest(object):
 
         pred_m, pred_var = self.model._tf_predict(self.test_params[0:1])
 
-        assert_allclose(expected.data, pred_m, rtol=1)
+        assert_allclose(expected.data, pred_m, rtol=1e-2)
 
     def test_predict_interface(self):
 
@@ -31,11 +34,10 @@ class RFTest(object):
 
         pred_m, pred_var = self.model.predict(self.test_params[0:1])
 
-        assert_allclose(expected.data, pred_m.data, rtol=1)
+        assert_allclose(expected.data, pred_m.data, rtol=1e-2)
         assert pred_m.name() == 'Emulated ' + expected.name()
         assert pred_var is None
-        #assert pred_m.units == expected.units
-        #assert pred_var.units == expected.units
+        assert pred_m.units == expected.units
 
     def test_predict_interface_multiple_samples(self):
         from iris.cube import CubeList
@@ -46,11 +48,12 @@ class RFTest(object):
 
         pred_m, pred_var = self.model.predict(self.test_params)
 
-        assert_allclose(expected.data, pred_m.data, rtol=1)
+        # For some reason the relative tolerance has to be
+        # higher here than in the other tests???
+        assert_allclose(expected.data, pred_m.data, rtol=1e-1)
         assert pred_m.name() == 'Emulated ' + (expected.name() or 'data')
         assert pred_var is None
-        #assert pred_m.units == expected.units
-        #assert pred_var.units == expected.units
+        assert pred_m.units == expected.units
 
 
 class Simple1DTest(unittest.TestCase, RFTest):
@@ -61,12 +64,10 @@ class Simple1DTest(unittest.TestCase, RFTest):
     @classmethod
     def setUpClass(cls) -> None:
         params, test = pop_elements(get_uniform_params(2), 10, 12)
-        #print(get_uniform_params(2),np.shape(get_uniform_params(2)))
         ensemble = get_1d_two_param_cube(params)
-        print("Print statement!! \n", params)
-        print("Print statement!! \n", test)
-        print(params.shape, ensemble.shape)
-        m = RFModel(params, ensemble)
+        m = RFModel(training_params=params,
+                    training_data=ensemble,
+                    random_state=0)
         m.train()
 
         cls.model = m
@@ -83,12 +84,10 @@ class Simple2DTest(unittest.TestCase, RFTest):
     @classmethod
     def setUpClass(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
-
         ensemble = get_three_param_cube(params)
-        print("Print statement!! \n", params)
-        print("Print statement!! \n", test)
-        print(params.shape, ensemble.shape)
-        m = RFModel(params, ensemble)
+        m = RFModel(training_params=params,
+                    training_data=ensemble,
+                    random_state=0)
         m.train()
 
         cls.model = m
@@ -109,7 +108,9 @@ class Simple32bitTest(unittest.TestCase, RFTest):
         ensemble = get_three_param_cube(params)
         # Create a new, ensemble at lower precision
         ensemble = ensemble.copy(data=ensemble.data.astype('float32'))
-        m = RFModel(params, ensemble)
+        m = RFModel(training_params=params,
+                    training_data=ensemble,
+                    random_state=0)
         m.train()
 
         cls.model = m
