@@ -2,6 +2,7 @@
 tensorflow-gpu
 gpflow
 tqdm
+scikit-learn
 
 # build dependencies
 setuptools
