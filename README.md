@@ -6,6 +6,7 @@ GCEm
 
 A tool for emulating geophysical models including (but not limited to!) General Circulation Models.
 
+This project is still a work in progress and documentation will be coming shortly, in the meantime some example notebooks which demonstrate the basic usage can be found [here](examples).
 
 License
 -------
