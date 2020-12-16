@@ -52,11 +52,22 @@ def plot_results(ax, truth, pred, title):
     ax.set_ylabel('Prediction')
     
     
-def LeaveOneOut(Xdata, Ydata, rndseed=0, **rf_kwargs):
+def LeaveOneOut(Xdata, Ydata, model='RandomForest', rndseed=0, **rf_kwargs):
     """
-    Function to perform LeaveOneOut cross-validation with different estimators. 
+    Function to perform LeaveOneOut cross-validation with different models. 
     """
     from GCEm.rf_model import RFModel
+    from GCEm.gp_model import GPModel
+    from GCEm.nn_model import NNModel
+    from sklearn.linear_model import LinearRegression
+    
+    estimators = {'Linear': LinearRegression(),
+                  'RandomForest': RFModel,
+                  'GaussianProcess': GPModel,
+                  'NeuralNet': NNModel}
+    
+    if model not in estimators.keys():
+        raise Exception(f"Method needs to be one of {list(estimators.keys())}, found '{method}'.")
     
     # fix random seed for reproducibility 
     # then shuffle X,Y indices so that they're not ordered (in time, for example)
@@ -66,7 +77,7 @@ def LeaveOneOut(Xdata, Ydata, rndseed=0, **rf_kwargs):
     # How many indices?
     n_data = Xdata.shape[0]
     
-    # Output array for test val, pred_mean
+    # Output array for test value and prediction
     output = np.vstack([np.empty(2) for _ in range(n_data)])
     
     for test_idx in range(n_data):
@@ -78,18 +89,32 @@ def LeaveOneOut(Xdata, Ydata, rndseed=0, **rf_kwargs):
         Y_test  = Ydata[rndperm[test_idx]]
        
         """Construct and fit model"""
-        model = RFModel(training_params=X_train, 
-                        training_data=Y_train, 
-                        random_state=rndseed, 
-                        **rf_kwargs)
-        
-        model.train()
+        if model=='Linear':
+            model_ = estimators[model]
+            model_.fit(X=X_train, y=Y_train)
+            """Evaluate model on test data"""
+            predictions = model_.predict(X_test)
+
+            """Save output for validation plot  later on"""
+            output[test_idx] = (Y_test, predictions)
             
-        """Evaluate model on test data"""
-        predictions,v = model.predict(X_test)
+        else:
+            if model=='RandomForest':
+                model_ = estimators[model](training_params=X_train, 
+                                           training_data=Y_train, 
+                                           random_state=rndseed, 
+                                           **rf_kwargs)
+            else:
+                model_ = estimators[model](training_params=X_train, 
+                                           training_data=Y_train)
         
-        """Save output for validation plot  later on"""
-        output[test_idx] = (Y_test, predictions)
+            model_.train()
+
+            """Evaluate model on test data"""
+            predictions,v = model_.predict(X_test)
+
+            """Save output for validation plot later on"""
+            output[test_idx] = (Y_test, predictions)
 
     return output
 
