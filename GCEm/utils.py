@@ -14,7 +14,35 @@ def add_121_line(ax):
     ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
     ax.set_xlim(lims)
     ax.set_ylim(lims)
+    
+def prettify_plot(ax):
+    """utility function for making plots prettier"""
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+    ax.spines['left'].set_position(('outward', 10))
+    ax.spines['bottom'].set_position(('outward', 10))
 
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+def plot_results(ax, truth, pred, title):
+    """ Validation plot for LeaveOneOut """
+    from sklearn.metrics import median_absolute_error, r2_score, mean_squared_error
+    from sklearn.model_selection import train_test_split
+    ax.scatter(y=pred, x=truth, zorder=2.6, s=20, alpha=0.5)
+    props = {'boxstyle':'round', 'facecolor':'wheat'}
+    ax.text(x=0.05, y=0.8, transform=ax.transAxes,
+            s=f'$R^2$={np.round(r2_score(pred, truth),2)}, ' +\
+                f'MAE={np.round(median_absolute_error(pred, truth),3)}, ' +\
+                f'RMSE={np.round( np.sqrt(mean_squared_error(pred, truth)), 2)}',
+            bbox=props)
+
+    # Change axis formatting
+    prettify_plot(ax)
+    add_121_line(ax)
+    ax.set_title(title)
+    ax.set_xlabel('Truth')
+    ax.set_ylabel('Prediction')
 
 def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, miny=None, maxx=None, maxy=None):
     from scipy import stats
@@ -136,6 +164,72 @@ def ensemble_collocate(ensemble, observations, member_dimension='job'):
         col_members.append(new_c)
     col_ensemble = col_members.concatenate_cube()
     return col_ensemble
+
+def LeaveOneOut(Xdata, Ydata, model='RandomForest', rndseed=0, **rf_kwargs):
+    """
+    Function to perform LeaveOneOut cross-validation with different models. 
+    """
+    from GCEm.rf_model import RFModel
+    from GCEm.gp_model import GPModel
+    from GCEm.nn_model import NNModel
+    from sklearn.linear_model import LinearRegression
+    
+    estimators = {'Linear': LinearRegression(),
+                  'RandomForest': RFModel,
+                  'GaussianProcess': GPModel,
+                  'NeuralNet': NNModel}
+    
+    if model not in estimators.keys():
+        raise Exception(f"Method needs to be one of {list(estimators.keys())}, found '{method}'.")
+    
+    # fix random seed for reproducibility 
+    # then shuffle X,Y indices so that they're not ordered (in time, for example)
+    np.random.seed(rndseed)
+    rndperm = np.random.permutation(Xdata.shape[0])
+    
+    # How many indices?
+    n_data = Xdata.shape[0]
+    
+    # Output array for test value and prediction
+    output = np.vstack([np.empty(2) for _ in range(n_data)])
+    
+    for test_idx in range(n_data):
+        """Split into training - validation sets"""
+        X_train = Xdata.iloc[rndperm[np.arange(len(rndperm))!= test_idx], :]
+        X_test  = Xdata.iloc[rndperm[test_idx], :].to_numpy().reshape(1,-1)
+        
+        Y_train = Ydata[rndperm[np.arange(len(rndperm))!= test_idx]]
+        Y_test  = Ydata[rndperm[test_idx]]
+       
+        """Construct and fit model"""
+        if model=='Linear':
+            model_ = estimators[model]
+            model_.fit(X=X_train, y=Y_train)
+            """Evaluate model on test data"""
+            predictions = model_.predict(X_test)
+
+            """Save output for validation plot  later on"""
+            output[test_idx] = (Y_test, predictions)
+            
+        else:
+            if model=='RandomForest':
+                model_ = estimators[model](training_params=X_train, 
+                                           training_data=Y_train, 
+                                           random_state=rndseed, 
+                                           **rf_kwargs)
+            else:
+                model_ = estimators[model](training_params=X_train, 
+                                           training_data=Y_train)
+        
+            model_.train()
+
+            """Evaluate model on test data"""
+            predictions,v = model_.predict(X_test)
+
+            """Save output for validation plot later on"""
+            output[test_idx] = (Y_test, predictions)
+
+    return output
 
 
 class tf_tqdm(object):
