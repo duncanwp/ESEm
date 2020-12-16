@@ -165,7 +165,7 @@ def ensemble_collocate(ensemble, observations, member_dimension='job'):
     col_ensemble = col_members.concatenate_cube()
     return col_ensemble
 
-def LeaveOneOut(Xdata, Ydata, model='RandomForest', rndseed=0, **rf_kwargs):
+def LeaveOneOut(Xdata, Ydata, model='RandomForest', **model_kwargs):
     """
     Function to perform LeaveOneOut cross-validation with different models. 
     """
@@ -174,17 +174,17 @@ def LeaveOneOut(Xdata, Ydata, model='RandomForest', rndseed=0, **rf_kwargs):
     from GCEm.nn_model import NNModel
     from sklearn.linear_model import LinearRegression
     
-    estimators = {'Linear': LinearRegression(),
-                  'RandomForest': RFModel,
-                  'GaussianProcess': GPModel,
-                  'NeuralNet': NNModel}
+    models = {'Linear': LinearRegression(),
+              'RandomForest': RFModel,
+              'GaussianProcess': GPModel,
+              'NeuralNet': NNModel}
     
-    if model not in estimators.keys():
-        raise Exception(f"Method needs to be one of {list(estimators.keys())}, found '{method}'.")
+    if model not in models.keys():
+        raise Exception(f"Model needs to be one of {list(models.keys())}, found '{model}'.")
     
     # fix random seed for reproducibility 
     # then shuffle X,Y indices so that they're not ordered (in time, for example)
-    np.random.seed(rndseed)
+    np.random.seed(0)
     rndperm = np.random.permutation(Xdata.shape[0])
     
     # How many indices?
@@ -203,7 +203,7 @@ def LeaveOneOut(Xdata, Ydata, model='RandomForest', rndseed=0, **rf_kwargs):
        
         """Construct and fit model"""
         if model=='Linear':
-            model_ = estimators[model]
+            model_ = models[model]
             model_.fit(X=X_train, y=Y_train)
             """Evaluate model on test data"""
             predictions = model_.predict(X_test)
@@ -212,14 +212,9 @@ def LeaveOneOut(Xdata, Ydata, model='RandomForest', rndseed=0, **rf_kwargs):
             output[test_idx] = (Y_test, predictions)
             
         else:
-            if model=='RandomForest':
-                model_ = estimators[model](training_params=X_train, 
-                                           training_data=Y_train, 
-                                           random_state=rndseed, 
-                                           **rf_kwargs)
-            else:
-                model_ = estimators[model](training_params=X_train, 
-                                           training_data=Y_train)
+            model_ = models[model](training_params=X_train, 
+                                   training_data=Y_train, 
+                                   **model_kwargs)
         
             model_.train()
 
