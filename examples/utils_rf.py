@@ -101,31 +101,37 @@ def get_crm_data(cache_path='.', preprocess=True):
     :return:
     """
     import pandas as pd
-    import cis
+    import os
+    import urllib.request
 
-    bc_ppe_cache = os.path.join(cache_path, 'BC_PPE_PD_AAOD_monthly.nc')
+    N1_200_cache = os.path.join(cache_path, 'NARVAL1_1hr_200cdnc.csv')
+    if not os.path.isfile(N1_200_cache):
+        urllib.request.urlretrieve("https://zenodo.org/record/4323300/files/NARVAL1_1hr_200cdnc.csv?download=1", N1_200_cache)
+        
+        
+    N1_20_cache = os.path.join(cache_path, 'NARVAL1_1hr_20cdnc.csv')
+    if not os.path.isfile(N1_20_cache):
+        urllib.request.urlretrieve("https://zenodo.org/record/4323300/files/NARVAL1_1hr_20cdnc.csv?download=1", N1_20_cache)
+        
+    N1_20_shal_cache = os.path.join(cache_path, 'NARVAL1_1hr_20cdnc_shal.csv')
+    if not os.path.isfile(N1_20_shal_cache):
+        urllib.request.urlretrieve("https://zenodo.org/record/4323300/files/NARVAL1_1hr_20cdnc_shal.csv?download=1", N1_20_shal_cache)
+        
+        
+    N1_200_shal_cache = os.path.join(cache_path, 'NARVAL1_1hr_200cdnc_shal.csv')
+    if not os.path.isfile(N1_200_shal_cache):
+        urllib.request.urlretrieve("https://zenodo.org/record/4323300/files/NARVAL1_1hr_200cdnc_shal.csv?download=1", N1_200_shal_cache)
 
-    if not os.path.isfile(bc_ppe_cache):
-        urllib.request.urlretrieve("https://zenodo.org/record/4323300/files/BC_PPE_PD_AAOD_monthly.nc?download=1", bc_ppe_cache)
-
-    params_cache = os.path.join(cache_path, 'aerocommmppe_bcdesign.csv')
-    if not os.path.isfile(params_cache):
-        urllib.request.urlretrieve("https://zenodo.org/record/4323300/files/aerocommmppe_bcdesign.csv?download=1", params_cache)
-
-    ppe_params = pd.read_csv(params_cache)
-    ppe_aaod = cis.read_data(bc_ppe_cache, 'ABS_2D_550nm', 'NetCDF_Gridded')
-    # Ensure the job dimension is at the front
-    ppe_aaod.transpose((1, 0, 2, 3))
     
-    if normalize_params:
-        ppe_params = ppe_params.apply(normalize, axis=0)
-    
-    if dre:
-        ppe_dre_cache = os.path.join(cache_path, 'BC_PPE_PD_FORCING_monthly.nc')
-        if not os.path.isfile(ppe_dre_cache):
-            urllib.request.urlretrieve("https://zenodo.org/record/3856645/files/BC_PPE_PD_FORCING_monthly.nc?download=1", ppe_dre_cache)
+    if preprocess:
+        df20 = pd.read_csv(N1_20_shal_cache).set_index('time').drop(columns='plev')
+        df200 = pd.read_csv(N1_200_shal_cache).set_index('time').drop(columns='plev')
 
-        ppe_dre = cis.read_data(ppe_dre_cache, 'FSW_TOTAL_TOP', 'NetCDF_Gridded')        
-        return ppe_params, ppe_aaod, ppe_dre
+        new_df = pd.concat([df20, df200]).reset_index().drop(columns='time')
+
+        return new_df
+    
     else:
-        return ppe_params, ppe_aaod
+        df20 = pd.read_csv('NARVAL1_1hr_20cdnc_shal.csv')
+        df200 = pd.read_csv('NARVAL1_1hr_200cdnc_shal.csv')
+        return df20, df200
