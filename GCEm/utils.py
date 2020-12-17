@@ -172,10 +172,8 @@ def LeaveOneOut(Xdata, Ydata, model='RandomForest', **model_kwargs):
     from GCEm.rf_model import RFModel
     from GCEm.gp_model import GPModel
     from GCEm.nn_model import NNModel
-    from sklearn.linear_model import LinearRegression
     
-    models = {'Linear': LinearRegression(),
-              'RandomForest': RFModel,
+    models = {'RandomForest': RFModel,
               'GaussianProcess': GPModel,
               'NeuralNet': NNModel}
     
@@ -202,27 +200,17 @@ def LeaveOneOut(Xdata, Ydata, model='RandomForest', **model_kwargs):
         Y_test  = Ydata[rndperm[test_idx]]
        
         """Construct and fit model"""
-        if model=='Linear':
-            model_ = models[model]
-            model_.fit(X=X_train, y=Y_train)
-            """Evaluate model on test data"""
-            predictions = model_.predict(X_test)
-
-            """Save output for validation plot  later on"""
-            output[test_idx] = (Y_test, predictions)
-            
-        else:
-            model_ = models[model](training_params=X_train, 
-                                   training_data=Y_train, 
-                                   **model_kwargs)
+        model_ = models[model](training_params=X_train, 
+                               training_data=Y_train, 
+                               **model_kwargs)
         
-            model_.train()
+        model_.train()
 
-            """Evaluate model on test data"""
-            predictions,v = model_.predict(X_test)
+        """Evaluate model on test data"""
+        predictions,v = model_.predict(X_test)
 
-            """Save output for validation plot later on"""
-            output[test_idx] = (Y_test, predictions)
+        """Save output for validation plot later on"""
+        output[test_idx] = (Y_test, predictions)
 
     return output
 
