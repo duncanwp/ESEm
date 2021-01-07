@@ -83,7 +83,7 @@ class Simple1DTest(unittest.TestCase, GPTest):
     def setUpClass(cls) -> None:
         from gpflow.config import as_context, Config
 
-        params, test = pop_elements(get_uniform_params(2), 10, 12)
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
 
         ensemble = get_1d_two_param_cube(params)
 
