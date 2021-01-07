@@ -87,7 +87,7 @@ class Simple1DTest(unittest.TestCase, GPTest):
 
         ensemble = get_1d_two_param_cube(params)
 
-        config = Config(jitter=1e-4)
+        config = Config(jitter=1e-1)
         with as_context(config):
             m = GPModel(params, ensemble)
             m.train()
