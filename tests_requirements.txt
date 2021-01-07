@@ -1,5 +1,4 @@
 # Mandatory dependencies
-tensorflow-gpu
 gpflow
 tqdm
 scikit-learn
