@@ -81,16 +81,13 @@ class Simple1DTest(unittest.TestCase, GPTest):
 
     @classmethod
     def setUpClass(cls) -> None:
-        from gpflow.config import as_context, Config
 
         params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
 
         ensemble = get_1d_two_param_cube(params)
 
-        config = Config(jitter=1e-1)
-        with as_context(config):
-            m = GPModel(params, ensemble)
-            m.train()
+        m = GPModel(params, ensemble)
+        m.train()
 
         cls.model = m
         cls.params = params
