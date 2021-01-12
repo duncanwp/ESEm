@@ -1,6 +1,29 @@
 import numpy as np
-from .model import Model
+from .model import Model, DataProcessor, Whiten
 import tensorflow as tf
+
+
+class Reshape(DataProcessor):
+
+    def process(self, data):
+        # Check the training data is the right shape for the ConvNet
+        self.add_newaxis = False
+
+        if data.ndim < 3:
+            raise ValueError("Training data must have at least three "
+                             "dimensions (including the sample dimension)")
+        elif data.ndim == 3:
+            self.add_newaxis = True
+            data = data[..., np.newaxis]
+        elif data.ndim > 4:
+            raise ValueError("Training data must have at most four dimensions"
+                             "(including the sample dimension)")
+        return data
+
+    def unprocess(self, data):
+        if self.add_newaxis:
+            data = data[..., 0]
+        return data
 
 
 class NNModel(Model):
@@ -9,36 +32,13 @@ class NNModel(Model):
     Note that X should include both the train and validation data
     """
 
-    def __init__(self, *args, **kwargs):
-        super(NNModel, self).__init__(*args, **kwargs)
+    def __init__(self, *args, data_processors=None, **kwargs):
+        # Add whitening and reshaping processors
+        data_processors = data_processors if data_processors is not None else []
+        data_processors.extend([Whiten(), Reshape()])
+
+        super(NNModel, self).__init__(data_processors=data_processors, *args, **kwargs)
         self.dtype = tf.float32
-
-    def _pre_process(self):
-        # Normalise the training data
-        # self.mean_t = self.training_data.mean(axis=0)
-        # self.training_data = (self.training_data - self.mean_t)
-        # TODO: Make whitening, normalizing (and weighting) optional in the constructor
-        # pass
-        self.training_data = self.whiten(self.training_data)
-
-        # Check the training data is the right shape for the ConvNet
-        if self.training_data.ndim < 3:
-            raise ValueError("Training data must have at least three "
-                             "dimensions (including the sample dimension)")
-        elif self.training_data.ndim == 3:
-            self.training_data = self.training_data[..., np.newaxis]
-        elif self.training_data.ndim > 4:
-            raise ValueError("Training data must have at most four dimensions"
-                             "(including the sample dimension)")
-
-    def _post_process(self, data):
-        if data is not None:
-            # If the last (color) dimension is one then pop it off (we added it
-            #  in pre-processing
-            if data.shape[-1] == 1:
-                data = data[..., 0]
-            data = self.un_whiten(data)
-        return super(NNModel, self)._post_process(data)
 
     def _construct(self, filters=12, learning_rate=1e-3, decay=0.01,
                    kernel_size=(3, 5), loss='mean_squared_error',

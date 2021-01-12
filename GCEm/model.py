@@ -3,6 +3,66 @@ import tensorflow as tf
 import numpy as np
 
 
+class DataProcessor(ABC):
+
+    @abstractmethod
+    def process(self, data):
+        pass
+
+    @abstractmethod
+    def unprocess(self, data):
+        pass
+
+
+class Whiten(DataProcessor):
+
+    def process(self, data):
+        # Useful for whitening the training data
+        self.std_dev = np.std(data, axis=0, keepdims=True)
+        self.mean = np.mean(data, axis=0, keepdims=True)
+
+        # Add a tiny epsilon to avoid division by zero
+        return (data - self.mean) / (self.std_dev + 1e-12)
+
+    def unprocess(self, data):
+        return (data * self.std_dev) + self.mean
+
+
+class Normalise(DataProcessor):
+
+    def process(self, data):
+        # Useful for normalising the training data
+        self.min = np.min(data, axis=0, keepdims=True)
+        self.max = np.max(data, axis=0, keepdims=True)
+
+        return (data - self.min) / (self.max - self.min)
+
+    def unprocess(self, data):
+        return data * (self.max - self.min) + self.min
+
+
+class Log(DataProcessor):
+
+    def process(self, data):
+        return np.log(data.data)
+
+    def unprocess(self, data):
+        return tf.exp(data.data)
+
+
+class Flatten(DataProcessor):
+
+    def process(self, data):
+        # Flatten the data
+        self.original_shape = data.shape
+        return data.reshape((data.shape[0], -1))
+
+    def unprocess(self, data):
+        # Reshape the output to the original shape, with a leading ensemble
+        #  dimension in case we're outputting a batch of samples
+        return tf.reshape(data, (-1,) + self.original_shape[1:])
+
+
 class Model(ABC):
     """
     A class representing a statistical emulator
@@ -17,7 +77,7 @@ class Model(ABC):
 
     """
 
-    def __init__(self, training_params, training_data, name='', gpu=0, *args, **kwargs):
+    def __init__(self, training_params, training_data, name='', gpu=0, data_processors=None, *args, **kwargs):
         """
 
         :param pd.DataFrame training_params: The training parameters
@@ -47,32 +107,13 @@ class Model(ABC):
         # Set the GPU to use (if provided)
         self.tf_device_context = tf.device('/gpu:{}'.format(gpu)) if gpu is not None else nullcontext
 
-        # Useful for whitening the training data
-        self.training_std_dev = np.std(self.training_data.data, axis=0, keepdims=True)
-        self.training_mean = np.mean(self.training_data.data, axis=0, keepdims=True)
-
-        # Useful for normalising the training data
-        self.training_min = np.min(self.training_data.data, axis=0, keepdims=True)
-        self.training_max = np.max(self.training_data.data, axis=0, keepdims=True)
-
+        # Store the processors for later use
+        self.data_processors = data_processors if data_processors is not None else []
         # Perform any pre-processing of the data the model might require
-        self._pre_process()
+        self.training_data = self._pre_process(self.training_data)
 
         # Construct the model
         self.model = self._construct(*args, **kwargs)
-
-    def scale(self, data):
-        return (data - self.training_min) / (self.training_max - self.training_min)
-
-    def rescale(self, data):
-        return data * (self.training_max - self.training_min) + self.training_min
-
-    def whiten(self, data):
-        # Add a tiny epsilon to avoid division by zero
-        return (data - self.training_mean) / (self.training_std_dev + 1e-12)
-
-    def un_whiten(self, data):
-        return (data * self.training_std_dev) + self.training_mean
 
     @abstractmethod
     def _construct(self, *args, **kwargs):
@@ -82,12 +123,15 @@ class Model(ABC):
         """
         pass
 
-    def _pre_process(self):
+    def _pre_process(self, data):
         """
          Any necessary rescaling or weightings are performed here
         :return:
         """
-        pass
+        # Apply each in turn
+        for processor in self.data_processors:
+            data = processor.process(data)
+        return data
 
     def _post_process(self, data):
         """
@@ -96,7 +140,12 @@ class Model(ABC):
         :param np.array or tf.Tensor data: Model output to post-process
         :return:
         """
-        # Null operation
+        # Check we were actually given some data to process
+        if data is not None:
+            # Loop through the processors, undoing each process in reverse order
+            for processor in self.data_processors[::-1]:
+                data = processor.unprocess(data)
+
         return data
 
     def _cube_wrap(self, data, name_prefix='Emulated '):

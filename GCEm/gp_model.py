@@ -1,6 +1,20 @@
 import tensorflow as tf
-from .model import Model
+from .model import Model, DataProcessor, Flatten
 import gpflow
+
+
+class Recast(DataProcessor):
+
+    def process(self, data):
+        from gpflow.config import default_float
+        # Ensure the training data is the same as the GPFlow default (float64)
+        #  We can't just reduce the precision of GPFlow to that of the data
+        #  because this leads to unstable optimization
+        return data.astype(default_float())
+
+    def unprocess(self, data):
+        # I just leave this currently
+        return data
 
 
 class GPModel(Model):
@@ -9,15 +23,12 @@ class GPModel(Model):
     inputs (and outputs). Different kernels can be specified.
     """
 
-    def _pre_process(self):
-        from gpflow.config import default_float
+    def __init__(self, *args, data_processors=None, **kwargs):
+        # Add whitening and reshaping processors
+        data_processors = data_processors if data_processors is not None else []
+        data_processors.extend([Recast(), Flatten()])
 
-        # Ensure the training data is the same as the GPFlow default (float64)
-        #  We can't just reduce the precision of GPFlow to that of the data
-        #  because this leads to unstable optimization
-        self.dtype = default_float()
-        self.training_data = self.training_data.astype(self.dtype)
-        self.training_params = self.training_params.astype(self.dtype)
+        super(GPModel, self).__init__(data_processors=data_processors, *args, **kwargs)
 
     def _construct(self, *args, noise_variance=1., **kwargs):
         # TODO: Look at the noise_variance term here - what does it represent?
@@ -27,9 +38,8 @@ class GPModel(Model):
             gpflow.kernels.Polynomial(variance=[1.]*self.n_params) + \
             gpflow.kernels.Bias()
 
-        Y_flat = self.training_data.reshape((self.training_data.shape[0], -1))
-        return gpflow.models.GPR(data=(self.training_params, Y_flat), kernel=k,
-                                 noise_variance=tf.constant(noise_variance, dtype=self.dtype))
+        return gpflow.models.GPR(data=(self.training_params, self.training_data), kernel=k,
+                                 noise_variance=tf.constant(noise_variance))
 
     def train(self, verbose=False, **kwargs):
         with self.tf_device_context:
@@ -42,10 +52,5 @@ class GPModel(Model):
 
     def _raw_predict(self, *args, **kwargs):
         with self.tf_device_context:
-            m, v = self.model.predict_y(*args, **kwargs)
-            # Reshape the output to the original shape, with a leading ensemble
-            #  dimension in case we're outputting a batch of samples
-            mean = tf.reshape(m, (-1,) + self.training_data.shape[1:])
-            var = tf.reshape(v, (-1,) + self.training_data.shape[1:])
-            return mean, var
+            return self.model.predict_y(*args, **kwargs)
 
