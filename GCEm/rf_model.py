@@ -27,11 +27,14 @@ class RFModel(Model):
         rfmodel = RandomForestRegressor(*args, **kwargs)
         return rfmodel
 
-    def train(self):
+    def train(self, verbose=False):
         """
         Train the RF model. Note that this scikit
         implementation can't take advantage of GPUs.
         """
+        if verbose:
+            self.model.verbose = 1
+            
         self.model.fit(X=self.training_params, y=self.training_data)
 
     def _raw_predict(self, *args, **kwargs):
