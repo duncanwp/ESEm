@@ -34,7 +34,7 @@ class RFModel(Model):
         """
         if verbose:
             self.model.verbose = 1
-            
+
         self.model.fit(X=self.training_params, y=self.training_data)
 
     def _raw_predict(self, *args, **kwargs):
