@@ -28,7 +28,7 @@ class RFModel(Model):
         Y_flat = self.training_data.reshape((self.training_data.shape[0], -1))
         self.model.fit(X=self.training_params, y=Y_flat)
 
-    def _tf_predict(self, *args, **kwargs):
+    def _raw_predict(self, *args, **kwargs):
         # Requires X_pred to be of shape (n_samples, n_features)
         m = self.model.predict(*args, **kwargs)
 

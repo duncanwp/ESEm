@@ -19,7 +19,7 @@ class GPTest(object):
         #  Use the class method `eval_fn` so 'self' doesn't get passed
         expected = type(self).eval_fn(self.test_params[0])
 
-        pred_m, pred_var = self.model._tf_predict(self.test_params[0:1])
+        pred_m, pred_var = self.model._predict(self.test_params[0:1])
 
         assert_allclose(expected.data, pred_m.numpy(), rtol=1e-3)
 

@@ -40,7 +40,7 @@ class GPModel(Model):
                          variables=self.model.trainable_variables,
                          options=dict(disp=verbose, maxiter=100), **kwargs)
 
-    def _tf_predict(self, *args, **kwargs):
+    def _raw_predict(self, *args, **kwargs):
         with self.tf_device_context:
             m, v = self.model.predict_y(*args, **kwargs)
             # Reshape the output to the original shape, with a leading ensemble

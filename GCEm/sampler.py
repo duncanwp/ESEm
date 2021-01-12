@@ -102,7 +102,7 @@ class MCMCSampler(Sampler):
 def _tf_sample(model, prior_x, obs, obs_var, n_samples, mcmc_kwargs, kernel_kwargs):
 
     def target(x):
-        emulator_mean, emulator_var = model._tf_predict(x)
+        emulator_mean, emulator_var = model._predict(x)
         total_sd = tf.sqrt(tf.add(emulator_var, obs_var))
         diff = tf.subtract(obs, emulator_mean)
         return _target_log_likelihood(prior_x, x, diff, total_sd)

@@ -32,11 +32,11 @@ class NNTest(unittest.TestCase):
         #  Use the class method `eval_fn` so 'self' doesn't get passed
         expected = type(self).eval_fn(self.test_params[0])
 
-        pred_m, pred_var = self.model._tf_predict(self.test_params[0:1])
+        pred_m, pred_var = self.model._predict(self.test_params[0:1])
 
         # This is a very loose tolerance, I'm not really interested in
         #  exactly fitting the data for this test
-        assert_allclose(expected.data, self.model.un_whiten(pred_m[..., 0]), rtol=1)
+        assert_allclose(expected.data, pred_m, rtol=1)
 
     def test_simple_predict_with_time_1(self):
         params, test = pop_elements(get_uniform_params(3), 50)
@@ -49,11 +49,11 @@ class NNTest(unittest.TestCase):
         #  Use the class method `eval_fn` so 'self' doesn't get passed
         expected = eval_cube(self.test_params[0], time_len=1)
 
-        pred_m, pred_var = model._tf_predict(self.test_params[0:1])
+        pred_m, pred_var = model._predict(self.test_params[0:1])
 
         # This is a very loose tolerance, I'm not really interested in
         #  exactly fitting the data for this test
-        assert_allclose(expected.data, model.un_whiten(pred_m), rtol=1)
+        assert_allclose(expected.data, pred_m, rtol=1)
 
     def test_simple_predict_with_invalid_shape(self):
         params, test = pop_elements(get_uniform_params(2), 50)
@@ -74,11 +74,11 @@ class NNTest(unittest.TestCase):
         #  Use the class method `eval_fn` so 'self' doesn't get passed
         expected = eval_cube(self.test_params[0], time_len=12)
 
-        pred_m, pred_var = model._tf_predict(self.test_params[0:1])
+        pred_m, pred_var = model._predict(self.test_params[0:1])
 
         # This is a very loose tolerance, I'm not really interested in
         #  exactly fitting the data for this test
-        assert_allclose(expected.data, model.un_whiten(pred_m), rtol=1)
+        assert_allclose(expected.data, pred_m, rtol=1)
 
     def test_simple_predict_with_different_optimizer(self):
         params, test = pop_elements(get_uniform_params(3), 50)
@@ -91,11 +91,11 @@ class NNTest(unittest.TestCase):
         #  Use the class method `eval_fn` so 'self' doesn't get passed
         expected = eval_cube(self.test_params[0], time_len=12)
 
-        pred_m, pred_var = model._tf_predict(self.test_params[0:1])
+        pred_m, pred_var = model._predict(self.test_params[0:1])
 
         # This is a very loose tolerance, I'm not really interested in
         #  exactly fitting the data for this test
-        assert_allclose(expected.data, model.un_whiten(pred_m), rtol=1)
+        assert_allclose(expected.data, pred_m, rtol=1)
 
     def test_predict_interface(self):
 

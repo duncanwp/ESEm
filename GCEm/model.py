@@ -89,12 +89,21 @@ class Model(ABC):
         """
         pass
 
-    def _post_process(self, data, name_prefix='Emulated '):
+    def _post_process(self, data):
         """
-        Reshape output if needed and wrap back in a cube if one was provided
-         for training
+         Any necessary reshaping or un-weightings are performed here
 
-        :param np.array data: Model output to post-process
+        :param np.array or tf.Tensor data: Model output to post-process
+        :return:
+        """
+        # Null operation
+        return data
+
+    def _cube_wrap(self, data, name_prefix='Emulated '):
+        """
+        Wrap back in a cube if one was provided for training
+
+        :param np.array data: Model output to wrap
         :param args:
         :param kwargs:
         :return:
@@ -134,16 +143,39 @@ class Model(ABC):
         pass
 
     def predict(self, *args, **kwargs):
-        mean, var = self._tf_predict(*args, **kwargs)
+        """
+        Make a prediction using a trained emulator
 
-        return (self._post_process(mean, 'Emulated '),
-                self._post_process(var, 'Variance in emulated '))
+        :param args:
+        :param kwargs:
+        :return iris.Cube: Emulated results
+        """
+        # TODO: Add a warning if .train hasn't been called?
+        mean, var = self._predict(*args, **kwargs)
+
+        return (self._cube_wrap(mean, 'Emulated '),
+                self._cube_wrap(var, 'Variance in emulated '))
+
+    def _predict(self, *args, **kwargs):
+        """
+        The (internal) predict interface used by e.g., a sampler. It is still in tf but has been post-processed
+         to allow comparison with obs.
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        mean, var = self._raw_predict(*args, **kwargs)
+
+        return (self._post_process(mean),
+                self._post_process(var))
 
     @property
     @abstractmethod
-    def _tf_predict(self):
+    def _raw_predict(self):
         """
-        This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick)
+        This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick).
+        This function
 
         The sampler (using either tf.probability.mcmc and my ABC method) can then just call this to get samples
 
@@ -170,8 +202,8 @@ class Model(ABC):
                                               total=sample_points.shape[0]))
         # Wrap the results in a cube (but pop off the sample dim which will always
         #  only be one in this case
-        return (self._post_process(mean.numpy(), 'Ensemble mean ')[0],
-                self._post_process(sd.numpy(), 'Ensemble standard deviation in ')[0])
+        return (self._cube_wrap(mean.numpy(), 'Ensemble mean ')[0],
+                self._cube_wrap(sd.numpy(), 'Ensemble standard deviation in ')[0])
 
 
 @tf.function
@@ -185,7 +217,7 @@ def _tf_stats(model, sample_points, batch_size, pbar):
 
     for data in pbar(dataset):
         # Get batch prediction
-        emulator_mean, _ = model._tf_predict(data)
+        emulator_mean, _ = model._predict(data)
 
         # Get sum of x and sum of x**2
         tot_s += tf.reduce_sum(emulator_mean, axis=0)

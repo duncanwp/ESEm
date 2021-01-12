@@ -56,7 +56,7 @@ class ABCSampler(Sampler):
                                                              total=sample_points.shape[0])
                                                 )
 
-        return self.model._post_process(implausibility.numpy(), name_prefix='Implausibility in emulated ')
+        return self.model._cube_wrap(implausibility.numpy(), name_prefix='Implausibility in emulated ')
 
     def batch_constrain(self, sample_points, tolerance=0., threshold=3.0, batch_size=1):
         """
@@ -136,7 +136,7 @@ def _tf_constrain(model, obs, sample_points, total_variance,
 
     for data in pbar(dataset):
         # Get batch prediction
-        emulator_mean, emulator_var = model._tf_predict(data)
+        emulator_mean, emulator_var = model._predict(data)
 
         tot_sd = tf.sqrt(tf.add(emulator_var, total_variance))
         implausibility = _calc_implausibility(emulator_mean, obs, tot_sd)
@@ -167,7 +167,7 @@ def _tf_implausibility(model, obs, sample_points, total_variance,
 
     for data in pbar(dataset):
         # Get batch prediction
-        emulator_mean, emulator_var = model._tf_predict(data)
+        emulator_mean, emulator_var = model._predict(data)
 
         tot_sd = tf.sqrt(tf.add(emulator_var, total_variance))
         implausibility = _calc_implausibility(emulator_mean, obs, tot_sd)
@@ -243,7 +243,7 @@ def is_valid_sample(model, obs, sample, threshold, tolerance, total_variance):
     :param total_variance:
     :return bool:
     """
-    emulator_mean, emulator_var = model._tf_predict(tf.reshape(sample, (1, -1)))
+    emulator_mean, emulator_var = model._predict(tf.reshape(sample, (1, -1)))
     tot_sd = tf.sqrt(tf.add(emulator_var, total_variance))
     implausibility = _calc_implausibility(emulator_mean, obs, tot_sd)
     valid = constrain(implausibility, tolerance, threshold)[0]

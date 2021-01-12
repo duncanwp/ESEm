@@ -31,14 +31,14 @@ class NNModel(Model):
             raise ValueError("Training data must have at most four dimensions"
                              "(including the sample dimension)")
 
-    def _post_process(self, data, *args, **kwargs):
+    def _post_process(self, data):
         if data is not None:
             # If the last (color) dimension is one then pop it off (we added it
             #  in pre-processing
             if data.shape[-1] == 1:
                 data = data[..., 0]
             data = self.un_whiten(data)
-        return super(NNModel, self)._post_process(data, *args, **kwargs)
+        return super(NNModel, self)._post_process(data)
 
     def _construct(self, filters=12, learning_rate=1e-3, decay=0.01,
                    kernel_size=(3, 5), loss='mean_squared_error',
@@ -95,7 +95,7 @@ class NNModel(Model):
                            batch_size=batch_size, epochs=epochs,
                            validation_split=validation_split, **kwargs)
 
-    def _tf_predict(self, *args, **kwargs):
+    def _raw_predict(self, *args, **kwargs):
         with self.tf_device_context:
             # This only works with the tf.keras API
             return self.model(*args, **kwargs), None
