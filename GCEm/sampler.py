@@ -42,8 +42,6 @@ class Sampler(ABC):
 
         self.obs = obs.astype(model.dtype)
 
-        # TODO: CHECK THIS
-
         def _is_specified(uncertainty):
             # If it's anything other than a float 0. (e.g. and array) it must have been specified
             return (type(uncertainty) != float) or (uncertainty != 0.)
