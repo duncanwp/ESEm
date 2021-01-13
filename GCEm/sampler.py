@@ -12,7 +12,10 @@ class Sampler(ABC):
 
     def __init__(self, model, obs,
                  obs_uncertainty=0., interann_uncertainty=0.,
-                 repres_uncertainty=0., struct_uncertainty=0.):
+                 repres_uncertainty=0., struct_uncertainty=0.,
+                 abs_obs_uncertainty=0., abs_interann_uncertainty=0.,
+                 abs_repres_uncertainty=0., abs_struct_uncertainty=0.,
+                 ):
         """
         :param GCEm.model.Model model:
         :param iris.cube.Cube like object obs: The objective
@@ -22,6 +25,13 @@ class Sampler(ABC):
         :param float interann_uncertainty: Fractional, relative (1 sigma) uncertainty introduced when using a model run
          for a year other than that the observations were measured in.
         :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
+        :param float abs_obs_uncertainty: Fractional, absolute (1 sigma)  uncertainty in observations
+        :param float abs_repres_uncertainty: Fractional, absolute (1 sigma)  uncertainty due to the spatial and temporal
+         representitiveness of the observations
+        :param float abs_interann_uncertainty: Fractional, absolute (1 sigma)  uncertainty introduced when using a model run
+         for a year other than that the observations were measured in.
+        :param float abs_struct_uncertainty: Fractional, absolute (1 sigma)  uncertainty in the model itself.
+
         """
         self.model = model
 
@@ -32,13 +42,43 @@ class Sampler(ABC):
 
         self.obs = obs.astype(model.dtype)
 
-        # TODO: Could add an absolute uncertainty term here
-        # Get the square of the absolute uncertainty and add a batch dimension
-        observational_var = np.square(self.obs * obs_uncertainty)[np.newaxis, ...]
-        respres_var = np.square(self.obs * repres_uncertainty)[np.newaxis, ...]
-        interann_var = np.square(self.obs * interann_uncertainty)[np.newaxis, ...]
-        struct_var = np.square(self.obs * struct_uncertainty)[np.newaxis, ...]
-        self.total_var = sum([observational_var, respres_var, interann_var, struct_var])
+        # TODO: CHECK THIS
+
+        def _is_specified(uncertainty):
+            # If it's anything other than a float 0. (e.g. and array) it must have been specified
+            return (type(uncertainty) != float) or (uncertainty != 0.)
+
+        if _is_specified(obs_uncertainty) and _is_specified(abs_obs_uncertainty):
+            raise ValueError("Only one of the absolute and relative observational uncertainties should be specified")
+        elif _is_specified(abs_obs_uncertainty):
+            # Broadcast the square of the absolute uncertainty
+            abs_observational_var = np.broadcast_to(np.square(abs_obs_uncertainty), self.obs.shape)
+        else:  # obs_uncertainty can be zero
+            # Get the square of the absolute uncertainty and add a batch dimension
+            abs_observational_var = np.square(self.obs * obs_uncertainty)[np.newaxis, ...]
+
+        if _is_specified(repres_uncertainty) and _is_specified(abs_repres_uncertainty):
+            raise ValueError("Only one of the absolute and relative representivity uncertainties should be specified")
+        elif _is_specified(abs_repres_uncertainty):
+            abs_respres_var = np.broadcast_to(np.square(abs_repres_uncertainty), self.obs.shape)
+        else:  # obs_uncertainty can be zero
+            abs_respres_var = np.square(self.obs * repres_uncertainty)[np.newaxis, ...]
+
+        if _is_specified(interann_uncertainty) and _is_specified(abs_interann_uncertainty):
+            raise ValueError("Only one of the absolute and relative interannual uncertainties should be specified")
+        elif _is_specified(abs_interann_uncertainty):
+            abs_interann_var = np.broadcast_to(np.square(abs_interann_uncertainty), self.obs.shape)
+        else:  # obs_uncertainty can be zero
+            abs_interann_var = np.square(self.obs * interann_uncertainty)[np.newaxis, ...]
+
+        if _is_specified(struct_uncertainty) and _is_specified(abs_struct_uncertainty):
+            raise ValueError("Only one of the absolute and relative structural uncertainties should be specified")
+        elif _is_specified(abs_struct_uncertainty):
+            abs_struct_var = np.broadcast_to(np.square(abs_struct_uncertainty), self.obs.shape)
+        else:  # obs_uncertainty can be zero
+            abs_struct_var = np.square(self.obs * struct_uncertainty)[np.newaxis, ...]
+
+        self.total_var = sum([abs_observational_var, abs_respres_var, abs_interann_var, abs_struct_var])
 
     def sample(self, prior_x=None, n_samples=1):
         """
