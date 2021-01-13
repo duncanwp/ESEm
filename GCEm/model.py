@@ -103,7 +103,7 @@ class Model(ABC):
         else:
             self.training_params = training_params
         self.n_params = training_params.shape[1]
-        self.dtype = training_data.dtype
+
         # Set the GPU to use (if provided)
         self.tf_device_context = tf.device('/gpu:{}'.format(gpu)) if gpu is not None else nullcontext
 
@@ -111,6 +111,9 @@ class Model(ABC):
         self.data_processors = data_processors if data_processors is not None else []
         # Perform any pre-processing of the data the model might require
         self.training_data = self._pre_process(self.training_data)
+
+        # Store the training data dtype (after pre-processing in case it has changed)
+        self.dtype = self.training_data.dtype
 
         # Construct the model
         self.model = self._construct(*args, **kwargs)

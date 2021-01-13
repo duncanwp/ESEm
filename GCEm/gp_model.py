@@ -1,16 +1,17 @@
 import tensorflow as tf
 from .model import Model, DataProcessor, Flatten
 import gpflow
+from gpflow.config import default_float
 
 
 class Recast(DataProcessor):
 
+    def __init__(self, new_type):
+        self.new_type = new_type
+
     def process(self, data):
-        from gpflow.config import default_float
-        # Ensure the training data is the same as the GPFlow default (float64)
-        #  We can't just reduce the precision of GPFlow to that of the data
-        #  because this leads to unstable optimization
-        return data.astype(default_float())
+        self.old_type = data.dtype
+        return data.astype(self.new_type)
 
     def unprocess(self, data):
         # I just leave this currently
@@ -24,9 +25,12 @@ class GPModel(Model):
     """
 
     def __init__(self, *args, data_processors=None, **kwargs):
-        # Add whitening and reshaping processors
+        # Add recasting and reshaping processors
+        # Ensure the training data is the same as the GPFlow default (float64)
+        #  We can't just reduce the precision of GPFlow to that of the data
+        #  because this leads to unstable optimization
         data_processors = data_processors if data_processors is not None else []
-        data_processors.extend([Recast(), Flatten()])
+        data_processors.extend([Recast(default_float()), Flatten()])
 
         super(GPModel, self).__init__(data_processors=data_processors, *args, **kwargs)
 
@@ -38,8 +42,10 @@ class GPModel(Model):
             gpflow.kernels.Polynomial(variance=[1.]*self.n_params) + \
             gpflow.kernels.Bias()
 
-        return gpflow.models.GPR(data=(self.training_params, self.training_data), kernel=k,
-                                 noise_variance=tf.constant(noise_variance))
+        return gpflow.models.GPR(data=(self.training_params, self.training_data),
+                                 kernel=k,
+                                 noise_variance=tf.constant(noise_variance,
+                                                            dtype=self.dtype))
 
     def train(self, verbose=False, **kwargs):
         with self.tf_device_context:
