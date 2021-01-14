@@ -36,7 +36,8 @@ class RFTest(object):
 
         assert_allclose(expected.data, pred_m.data, rtol=1e-2)
         assert pred_m.name() == 'Emulated ' + expected.name()
-        assert pred_var is None
+        assert_allclose(np.full_like(expected.data, np.NaN), pred_var.data, equal_nan=True)
+        assert pred_var.name() == 'Variance in emulated ' + expected.name()
         assert pred_m.units == expected.units
 
     def test_predict_interface_multiple_samples(self):
@@ -52,7 +53,8 @@ class RFTest(object):
         # higher here than in the other tests???
         assert_allclose(expected.data, pred_m.data, rtol=1e-1)
         assert pred_m.name() == 'Emulated ' + (expected.name() or 'data')
-        assert pred_var is None
+        assert_allclose(np.full_like(expected.data, np.NaN), pred_var.data, equal_nan=True)
+        assert pred_var.name() == 'Variance in emulated ' + expected.name()
         assert pred_m.units == expected.units
 
 

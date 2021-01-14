@@ -13,9 +13,9 @@ class Recast(DataProcessor):
         self.old_type = data.dtype
         return data.astype(self.new_type)
 
-    def unprocess(self, data):
+    def unprocess(self, mean, variance):
         # I just leave this currently
-        return data
+        return mean, variance
 
 
 class GPModel(Model):

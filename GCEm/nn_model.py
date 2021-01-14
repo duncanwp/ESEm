@@ -20,10 +20,11 @@ class Reshape(DataProcessor):
                              "(including the sample dimension)")
         return data
 
-    def unprocess(self, data):
+    def unprocess(self, mean, variance):
         if self.add_newaxis:
-            data = data[..., 0]
-        return data
+            mean = mean[..., 0]
+            variance = variance[..., 0]
+        return mean, variance
 
 
 class NNModel(Model):

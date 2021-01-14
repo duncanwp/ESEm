@@ -10,7 +10,7 @@ class DataProcessor(ABC):
         pass
 
     @abstractmethod
-    def unprocess(self, data):
+    def unprocess(self, mean, variance):
         pass
 
 
@@ -24,8 +24,8 @@ class Whiten(DataProcessor):
         # Add a tiny epsilon to avoid division by zero
         return (data - self.mean) / (self.std_dev + 1e-12)
 
-    def unprocess(self, data):
-        return (data * self.std_dev) + self.mean
+    def unprocess(self, mean, variance):
+        return (mean * self.std_dev) + self.mean, variance * self.std_dev
 
 
 class Normalise(DataProcessor):
@@ -37,17 +37,26 @@ class Normalise(DataProcessor):
 
         return (data - self.min) / (self.max - self.min)
 
-    def unprocess(self, data):
-        return data * (self.max - self.min) + self.min
+    def unprocess(self, mean, variance):
+        return mean * (self.max - self.min) + self.min, variance * (self.max - self.min)
 
 
 class Log(DataProcessor):
 
-    def process(self, data):
-        return np.log(data.data)
+    def __init__(self, plus_one=False):
+        self.plus_one = plus_one
 
-    def unprocess(self, data):
-        return tf.exp(data.data)
+    def process(self, data):
+        if self.plus_one:
+            return np.log(data + 1.)
+        else:
+            return np.log(data)
+
+    def unprocess(self, mean, variance):
+        mean_res = tf.exp(mean)
+        if self.plus_one:
+            mean_res = mean_res - tf.constant(1., dtype=mean.dtype)
+        return mean_res, tf.exp(mean) * variance
 
 
 class Flatten(DataProcessor):
@@ -57,10 +66,11 @@ class Flatten(DataProcessor):
         self.original_shape = data.shape
         return data.reshape((data.shape[0], -1))
 
-    def unprocess(self, data):
+    def unprocess(self, mean, variance):
         # Reshape the output to the original shape, with a leading ensemble
         #  dimension in case we're outputting a batch of samples
-        return tf.reshape(data, (-1,) + self.original_shape[1:])
+        return (tf.reshape(mean, (-1,) + self.original_shape[1:]),
+                tf.reshape(variance, (-1,) + self.original_shape[1:]))
 
 
 class Model(ABC):
@@ -136,20 +146,22 @@ class Model(ABC):
             data = processor.process(data)
         return data
 
-    def _post_process(self, data):
+    def _post_process(self, mean, variance):
         """
          Any necessary reshaping or un-weightings are performed here
 
-        :param np.array or tf.Tensor data: Model output to post-process
+        :param np.array or tf.Tensor mean: Model mean output to post-process
+        :param np.array or tf.Tensor variance: Model variance output to post-process
         :return:
         """
         # Check we were actually given some data to process
-        if data is not None:
-            # Loop through the processors, undoing each process in reverse order
-            for processor in self.data_processors[::-1]:
-                data = processor.unprocess(data)
+        if variance is None:
+            variance = tf.ones_like(mean) * tf.constant([float('NaN')], dtype=mean.dtype)
+        # Loop through the processors, undoing each process in reverse order
+        for processor in self.data_processors[::-1]:
+            mean, variance = processor.unprocess(mean, variance)
 
-        return data
+        return mean, variance
 
     def _cube_wrap(self, data, name_prefix='Emulated '):
         """
@@ -218,9 +230,8 @@ class Model(ABC):
         :return:
         """
         mean, var = self._raw_predict(*args, **kwargs)
-
-        return (self._post_process(mean),
-                self._post_process(var))
+        # Left un-nested for readability
+        return self._post_process(mean, var)
 
     @property
     @abstractmethod

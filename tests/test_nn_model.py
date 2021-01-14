@@ -109,7 +109,8 @@ class NNTest(unittest.TestCase):
         #  exactly fitting the data for this test
         assert_allclose(expected.data, pred_m.data, rtol=1)
         assert pred_m.name() == 'Emulated ' + expected.name()
-        assert pred_var is None
+        assert_allclose(np.full_like(expected.data, np.NaN), pred_var.data, equal_nan=True)
+        assert pred_var.name() == 'Variance in emulated ' + expected.name()
         assert pred_m.units == expected.units
 
     def test_predict_interface_multiple_samples(self):
@@ -123,7 +124,8 @@ class NNTest(unittest.TestCase):
 
         assert_allclose(expected.data, pred_m.data, rtol=1)
         assert pred_m.name() == 'Emulated ' + (expected.name() or 'data')
-        assert pred_var is None
+        assert_allclose(np.full_like(expected.data, np.NaN), pred_var.data, equal_nan=True)
+        assert pred_var.name() == 'Variance in emulated ' + expected.name()
         assert pred_m.units == expected.units
 
     def test_batch_stats(self):
