@@ -109,7 +109,7 @@ class MCMCSamplerTest(unittest.TestCase):
                               struct_uncertainty=0.)
 
         # Use as few burn-in steps as we can get away with to speed up the test
-        samples = sampler.sample(n_samples=100,
+        samples = sampler.sample(n_samples=500,
                                  mcmc_kwargs=dict(num_burnin_steps=50))
         Zs = simple_polynomial_fn_two_param(*samples.T)
         assert_allclose(Zs.mean(), 2., rtol=0.1)
