@@ -61,7 +61,7 @@ class GPTest(object):
         from GCEm.utils import get_random_params
         # Test that the sample_mean function returns the mean of the sample
 
-        sample_params = get_random_params(self.params.shape[1], 10)
+        sample_params = get_random_params(self.params.shape[1], 25)
 
         expected = CubeList([type(self).eval_fn(p, job_n=i) for i, p in enumerate(sample_params)])
         expected_ensemble = expected.concatenate_cube()
