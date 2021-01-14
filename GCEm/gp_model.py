@@ -1,5 +1,6 @@
 import tensorflow as tf
-from .model import Model, DataProcessor, Flatten
+from .model import Model
+from .data_processors import DataProcessor, Flatten
 import gpflow
 from gpflow.config import default_float
 

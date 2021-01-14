@@ -1,5 +1,6 @@
 import numpy as np
-from .model import Model, Flatten
+from .model import Model
+from .data_processors import Flatten
 import tensorflow as tf
 
 

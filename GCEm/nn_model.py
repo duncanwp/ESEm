@@ -1,30 +1,7 @@
 import numpy as np
-from .model import Model, DataProcessor, Whiten
+from .model import Model
+from .data_processors import Whiten, Reshape
 import tensorflow as tf
-
-
-class Reshape(DataProcessor):
-
-    def process(self, data):
-        # Check the training data is the right shape for the ConvNet
-        self.add_newaxis = False
-
-        if data.ndim < 3:
-            raise ValueError("Training data must have at least three "
-                             "dimensions (including the sample dimension)")
-        elif data.ndim == 3:
-            self.add_newaxis = True
-            data = data[..., np.newaxis]
-        elif data.ndim > 4:
-            raise ValueError("Training data must have at most four dimensions"
-                             "(including the sample dimension)")
-        return data
-
-    def unprocess(self, mean, variance):
-        if self.add_newaxis:
-            mean = mean[..., 0]
-            variance = variance[..., 0]
-        return mean, variance
 
 
 class NNModel(Model):
