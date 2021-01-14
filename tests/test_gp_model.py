@@ -19,7 +19,7 @@ class GPTest(object):
         #  Use the class method `eval_fn` so 'self' doesn't get passed
         expected = type(self).eval_fn(self.test_params[0])
 
-        pred_m, pred_var = self.model._tf_predict(self.test_params[0:1])
+        pred_m, pred_var = self.model._predict(self.test_params[0:1])
 
         assert_allclose(expected.data, pred_m.numpy(), rtol=1e-3)
 
@@ -61,17 +61,17 @@ class GPTest(object):
         from GCEm.utils import get_random_params
         # Test that the sample_mean function returns the mean of the sample
 
-        sample_params = get_random_params(self.params.shape[1], 10)
+        sample_params = get_random_params(self.params.shape[1], 25)
 
         expected = CubeList([type(self).eval_fn(p, job_n=i) for i, p in enumerate(sample_params)])
         expected_ensemble = expected.concatenate_cube()
 
         mean, std_dev = self.model.batch_stats(sample_params)
 
-        assert_allclose(mean.data, expected_ensemble.data.mean(axis=0), rtol=1e-1)
+        assert_allclose(mean.data, expected_ensemble.data.mean(axis=0), rtol=0.5)
         # This is a really loose test but it needs to be because of the
         #  stochastic nature of the model and the ensemble points
-        assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=.5)
+        assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=0.5)
 
 
 class Simple1DTest(unittest.TestCase, GPTest):

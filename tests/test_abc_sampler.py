@@ -127,6 +127,154 @@ class ABCSamplerTest(unittest.TestCase):
         expected[0] = np.nan
         assert_allclose(implausibility.data[10, :], expected, rtol=1e-1)
 
+    def test_absolute_obs_uncertainty(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             abs_obs_uncertainty=obs_uncertainty,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be one.
+        expected = np.ones((100,))
+        # The first element has zero variance
+        expected[0] = 0.
+        assert_allclose(implausibility.data[10, :], expected, rtol=1e-1)
+
+    def test_absolute_interann_uncertainty(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             abs_obs_uncertainty=0.,
+                             abs_interann_uncertainty=obs_uncertainty,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be one.
+        expected = np.ones((100,))
+        # The first element has zero variance
+        expected[0] = 0.
+        assert_allclose(implausibility.data[10, :], expected, rtol=1e-1)
+
+    def test_absolute_repress_uncertainty(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             abs_obs_uncertainty=0.,
+                             interann_uncertainty=0.,
+                             abs_repres_uncertainty=obs_uncertainty,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be one.
+        expected = np.ones((100,))
+        # The first element has zero variance
+        expected[0] = 0.
+        assert_allclose(implausibility.data[10, :], expected, rtol=1e-1)
+
+    def test_absolute_struct_uncertainty(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             abs_obs_uncertainty=0.,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             abs_struct_uncertainty=obs_uncertainty)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        # The implausibility for the 10th sample (the one we perturbed around)
+        #  should be one.
+        expected = np.ones((100,))
+        # The first element has zero variance
+        expected[0] = 0.
+        assert_allclose(implausibility.data[10, :], expected, rtol=1e-1)
+
+    def test_obs_uncertainty_specified_twice(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        with self.assertRaises(ValueError):
+            sampler = ABCSampler(self.m, obs,
+                                 obs_uncertainty=obs_uncertainty,
+                                 abs_obs_uncertainty=obs_uncertainty)
+
+    def test_interann_uncertainty_specified_twice(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        with self.assertRaises(ValueError):
+            sampler = ABCSampler(self.m, obs,
+                                 interann_uncertainty=obs_uncertainty,
+                                 abs_interann_uncertainty=obs_uncertainty)
+
+    def test_repres_uncertainty_specified_twice(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        with self.assertRaises(ValueError):
+            sampler = ABCSampler(self.m, obs,
+                                 repres_uncertainty=obs_uncertainty,
+                                 abs_repres_uncertainty=obs_uncertainty)
+
+    def test_struct_uncertainty_specified_twice(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        with self.assertRaises(ValueError):
+            sampler = ABCSampler(self.m, obs,
+                                 struct_uncertainty=obs_uncertainty,
+                                 abs_struct_uncertainty=obs_uncertainty)
+
     def test_calc_implausibility(self):
         # Test the implausibility is correct
 

@@ -17,7 +17,7 @@ class Model(ABC):
 
     """
 
-    def __init__(self, training_params, training_data, name='', gpu=0, *args, **kwargs):
+    def __init__(self, training_params, training_data, name='', gpu=0, data_processors=None, *args, **kwargs):
         """
 
         :param pd.DataFrame training_params: The training parameters
@@ -43,36 +43,20 @@ class Model(ABC):
         else:
             self.training_params = training_params
         self.n_params = training_params.shape[1]
-        self.dtype = training_data.dtype
+
         # Set the GPU to use (if provided)
         self.tf_device_context = tf.device('/gpu:{}'.format(gpu)) if gpu is not None else nullcontext
 
-        # Useful for whitening the training data
-        self.training_std_dev = np.std(self.training_data.data, axis=0, keepdims=True)
-        self.training_mean = np.mean(self.training_data.data, axis=0, keepdims=True)
-
-        # Useful for normalising the training data
-        self.training_min = np.min(self.training_data.data, axis=0, keepdims=True)
-        self.training_max = np.max(self.training_data.data, axis=0, keepdims=True)
-
+        # Store the processors for later use
+        self.data_processors = data_processors if data_processors is not None else []
         # Perform any pre-processing of the data the model might require
-        self._pre_process()
+        self.training_data = self._pre_process(self.training_data)
+
+        # Store the training data dtype (after pre-processing in case it has changed)
+        self.dtype = self.training_data.dtype
 
         # Construct the model
         self.model = self._construct(*args, **kwargs)
-
-    def scale(self, data):
-        return (data - self.training_min) / (self.training_max - self.training_min)
-
-    def rescale(self, data):
-        return data * (self.training_max - self.training_min) + self.training_min
-
-    def whiten(self, data):
-        # Add a tiny epsilon to avoid division by zero
-        return (data - self.training_mean) / (self.training_std_dev + 1e-12)
-
-    def un_whiten(self, data):
-        return (data * self.training_std_dev) + self.training_mean
 
     @abstractmethod
     def _construct(self, *args, **kwargs):
@@ -82,19 +66,38 @@ class Model(ABC):
         """
         pass
 
-    def _pre_process(self):
+    def _pre_process(self, data):
         """
          Any necessary rescaling or weightings are performed here
         :return:
         """
-        pass
+        # Apply each in turn
+        for processor in self.data_processors:
+            data = processor.process(data)
+        return data
 
-    def _post_process(self, data, name_prefix='Emulated '):
+    def _post_process(self, mean, variance):
         """
-        Reshape output if needed and wrap back in a cube if one was provided
-         for training
+         Any necessary reshaping or un-weightings are performed here
 
-        :param np.array data: Model output to post-process
+        :param np.array or tf.Tensor mean: Model mean output to post-process
+        :param np.array or tf.Tensor variance: Model variance output to post-process
+        :return:
+        """
+        # Check we were actually given some data to process
+        if variance is None:
+            variance = tf.ones_like(mean) * tf.constant([float('NaN')], dtype=mean.dtype)
+        # Loop through the processors, undoing each process in reverse order
+        for processor in self.data_processors[::-1]:
+            mean, variance = processor.unprocess(mean, variance)
+
+        return mean, variance
+
+    def _cube_wrap(self, data, name_prefix='Emulated '):
+        """
+        Wrap back in a cube if one was provided for training
+
+        :param np.array data: Model output to wrap
         :param args:
         :param kwargs:
         :return:
@@ -134,16 +137,38 @@ class Model(ABC):
         pass
 
     def predict(self, *args, **kwargs):
-        mean, var = self._tf_predict(*args, **kwargs)
+        """
+        Make a prediction using a trained emulator
 
-        return (self._post_process(mean, 'Emulated '),
-                self._post_process(var, 'Variance in emulated '))
+        :param args:
+        :param kwargs:
+        :return iris.Cube: Emulated results
+        """
+        # TODO: Add a warning if .train hasn't been called?
+        mean, var = self._predict(*args, **kwargs)
+
+        return (self._cube_wrap(mean, 'Emulated '),
+                self._cube_wrap(var, 'Variance in emulated '))
+
+    def _predict(self, *args, **kwargs):
+        """
+        The (internal) predict interface used by e.g., a sampler. It is still in tf but has been post-processed
+         to allow comparison with obs.
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        mean, var = self._raw_predict(*args, **kwargs)
+        # Left un-nested for readability
+        return self._post_process(mean, var)
 
     @property
     @abstractmethod
-    def _tf_predict(self):
+    def _raw_predict(self):
         """
-        This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick)
+        This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick).
+        This function
 
         The sampler (using either tf.probability.mcmc and my ABC method) can then just call this to get samples
 
@@ -170,8 +195,8 @@ class Model(ABC):
                                               total=sample_points.shape[0]))
         # Wrap the results in a cube (but pop off the sample dim which will always
         #  only be one in this case
-        return (self._post_process(mean.numpy(), 'Ensemble mean ')[0],
-                self._post_process(sd.numpy(), 'Ensemble standard deviation in ')[0])
+        return (self._cube_wrap(mean.numpy(), 'Ensemble mean ')[0],
+                self._cube_wrap(sd.numpy(), 'Ensemble standard deviation in ')[0])
 
 
 @tf.function
@@ -185,7 +210,7 @@ def _tf_stats(model, sample_points, batch_size, pbar):
 
     for data in pbar(dataset):
         # Get batch prediction
-        emulator_mean, _ = model._tf_predict(data)
+        emulator_mean, _ = model._predict(data)
 
         # Get sum of x and sum of x**2
         tot_s += tf.reduce_sum(emulator_mean, axis=0)

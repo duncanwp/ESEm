@@ -1,5 +1,6 @@
 import numpy as np
 from .model import Model
+from .data_processors import Flatten
 import tensorflow as tf
 
 
@@ -15,23 +16,28 @@ class RFModel(Model):
     to monotonic transformations of the independent variables
     """
 
+    def __init__(self, *args, data_processors=None, **kwargs):
+        # Add reshaping processor
+        data_processors = data_processors if data_processors is not None else []
+        data_processors.extend([Flatten()])
+
+        super(RFModel, self).__init__(data_processors=data_processors, *args, **kwargs)
+
     def _construct(self, *args, **kwargs):
         from sklearn.ensemble import RandomForestRegressor
         rfmodel = RandomForestRegressor(*args, **kwargs)
         return rfmodel
 
-    def train(self):
+    def train(self, verbose=False):
         """
         Train the RF model. Note that this scikit
         implementation can't take advantage of GPUs.
         """
-        Y_flat = self.training_data.reshape((self.training_data.shape[0], -1))
-        self.model.fit(X=self.training_params, y=Y_flat)
+        if verbose:
+            self.model.verbose = 1
 
-    def _tf_predict(self, *args, **kwargs):
+        self.model.fit(X=self.training_params, y=self.training_data)
+
+    def _raw_predict(self, *args, **kwargs):
         # Requires X_pred to be of shape (n_samples, n_features)
-        m = self.model.predict(*args, **kwargs)
-
-        mean = np.reshape(m, (-1,) + self.training_data.shape[1:])
-        var = None
-        return mean, var
+        return self.model.predict(*args, **kwargs), None

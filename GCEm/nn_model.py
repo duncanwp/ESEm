@@ -1,5 +1,6 @@
 import numpy as np
 from .model import Model
+from .data_processors import Whiten, Reshape
 import tensorflow as tf
 
 
@@ -9,36 +10,13 @@ class NNModel(Model):
     Note that X should include both the train and validation data
     """
 
-    def __init__(self, *args, **kwargs):
-        super(NNModel, self).__init__(*args, **kwargs)
+    def __init__(self, *args, data_processors=None, **kwargs):
+        # Add whitening and reshaping processors
+        data_processors = data_processors if data_processors is not None else []
+        data_processors.extend([Whiten(), Reshape()])
+
+        super(NNModel, self).__init__(data_processors=data_processors, *args, **kwargs)
         self.dtype = tf.float32
-
-    def _pre_process(self):
-        # Normalise the training data
-        # self.mean_t = self.training_data.mean(axis=0)
-        # self.training_data = (self.training_data - self.mean_t)
-        # TODO: Make whitening, normalizing (and weighting) optional in the constructor
-        # pass
-        self.training_data = self.whiten(self.training_data)
-
-        # Check the training data is the right shape for the ConvNet
-        if self.training_data.ndim < 3:
-            raise ValueError("Training data must have at least three "
-                             "dimensions (including the sample dimension)")
-        elif self.training_data.ndim == 3:
-            self.training_data = self.training_data[..., np.newaxis]
-        elif self.training_data.ndim > 4:
-            raise ValueError("Training data must have at most four dimensions"
-                             "(including the sample dimension)")
-
-    def _post_process(self, data, *args, **kwargs):
-        if data is not None:
-            # If the last (color) dimension is one then pop it off (we added it
-            #  in pre-processing
-            if data.shape[-1] == 1:
-                data = data[..., 0]
-            data = self.un_whiten(data)
-        return super(NNModel, self)._post_process(data, *args, **kwargs)
 
     def _construct(self, filters=12, learning_rate=1e-3, decay=0.01,
                    kernel_size=(3, 5), loss='mean_squared_error',
@@ -95,7 +73,7 @@ class NNModel(Model):
                            batch_size=batch_size, epochs=epochs,
                            validation_split=validation_split, **kwargs)
 
-    def _tf_predict(self, *args, **kwargs):
+    def _raw_predict(self, *args, **kwargs):
         with self.tf_device_context:
             # This only works with the tf.keras API
             return self.model(*args, **kwargs), None
