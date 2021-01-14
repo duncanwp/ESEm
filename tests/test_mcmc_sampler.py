@@ -110,6 +110,6 @@ class MCMCSamplerTest(unittest.TestCase):
 
         # Use as few burn-in steps as we can get away with to speed up the test
         samples = sampler.sample(n_samples=100,
-                                 mcmc_kwargs=dict(num_burnin_steps=10))
+                                 mcmc_kwargs=dict(num_burnin_steps=50))
         Zs = simple_polynomial_fn_two_param(*samples.T)
         assert_allclose(Zs.mean(), 2., rtol=0.1)

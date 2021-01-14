@@ -68,10 +68,10 @@ class GPTest(object):
 
         mean, std_dev = self.model.batch_stats(sample_params)
 
-        assert_allclose(mean.data, expected_ensemble.data.mean(axis=0), rtol=1e-1)
+        assert_allclose(mean.data, expected_ensemble.data.mean(axis=0), rtol=0.5)
         # This is a really loose test but it needs to be because of the
         #  stochastic nature of the model and the ensemble points
-        assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=.5)
+        assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=0.5)
 
 
 class Simple1DTest(unittest.TestCase, GPTest):
