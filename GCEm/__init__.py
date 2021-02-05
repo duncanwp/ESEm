@@ -29,12 +29,30 @@ def gp_model(training_params, training_data, data_processors=None,
     data_processors.extend([Recast(default_float()), Flatten()])
     data = CubeWrapper(training_data, data_processors=data_processors)
 
-    if kernel is None:
+    kernel_dict = {
+        "RBF": gpflow.kernels.RBF,
+        "Linear": gpflow.kernels.Linear,
+        "Polynomial": gpflow.kernels.Polynomial,
+        "Bias": gpflow.kernels.Bias
+    }
+
+    def init_kernel(k):
+        if type(k) == gpflow.kernels.Constant:  # E.g., Bias
+            return k()
+        elif type(k) == gpflow.kernels.Linear:  # This covers polynomial too
+            return k(variance=[1.] * n_params)
+        elif type(k) == gpflow.kernels.Stationary:  # This covers e.g. RBF
+            return k(lengthscales=[1.] * n_params)
+    if isinstance(kernel, list):
+        kernel = sum(init_kernel(kernel_dict[k]) for k in kernel)
+    elif kernel is None:
         kernel = gpflow.kernels.RBF(lengthscales=[0.5] * n_params, variance=0.01) + \
                  gpflow.kernels.Linear(variance=[1.] * n_params) + \
                  gpflow.kernels.Polynomial(variance=[1.] * n_params) + \
                  gpflow.kernels.Bias()
         print("WARNING: Using default kernel - be sure you understand the assumptions this implies")
+    else:
+        pass  # Use the user specified kernel
 
     # TODO: Look at the noise_variance term here - what does it represent?
     model = GPFlowModel(gpflow.models.GPR(data=(training_params, data.data_wrapper.data),
