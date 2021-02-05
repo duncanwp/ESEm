@@ -3,70 +3,52 @@ import tensorflow as tf
 import numpy as np
 
 
-class Model(ABC):
-    """
-    A class representing a statistical emulator
+class ModelAdaptor(ABC):
 
-    Attributes
-    ----------
-
-    training_data : iris.cube.Cube
-        The Iris cube representing the training data
-    name : str
-        A human-readable name for the model
-
-    """
-
-    def __init__(self, training_params, training_data, name='', gpu=0, data_processors=None, *args, **kwargs):
-        """
-
-        :param pd.DataFrame training_params: The training parameters
-        :param iris.cube.Cube training_data: The training data - the leading dimension should represent training samples
-        :param str name: Human readable name for the model
-        :param int gpu: The machine GPU to assign this model to
-        """
-        import iris.cube
-        from contextlib import nullcontext
-        import pandas as pd
-
-        if isinstance(training_data, iris.cube.Cube):
-            self.training_cube = training_data
-            self.training_data = training_data.data
-            self.name = name or training_data.name()
-        else:
-            self.training_cube = None
-            self.training_data = training_data
-            self.name = name
-
-        if isinstance(training_params, pd.DataFrame):
-            self.training_params = training_params.to_numpy()
-        else:
-            self.training_params = training_params
-        self.n_params = training_params.shape[1]
-
-        # Set the GPU to use (if provided)
-        self.tf_device_context = tf.device('/gpu:{}'.format(gpu)) if gpu is not None else nullcontext
-
-        # Store the processors for later use
-        self.data_processors = data_processors if data_processors is not None else []
-        # Perform any pre-processing of the data the model might require
-        self.training_data = self._pre_process(self.training_data)
-
-        # Store the training data dtype (after pre-processing in case it has changed)
-        self.dtype = self.training_data.dtype
-
-        # Construct the model
-        self.model = self._construct(*args, **kwargs)
+    def __init__(self, model):
+        self.model = model
 
     @abstractmethod
-    def _construct(self, *args, **kwargs):
+    def train(self, training_params, training_data, verbose=False, *args, **kwargs):
         """
-        Construct the model and compile if necessary (but don't train it yet)
+        Train on the training data
         :return:
         """
         pass
 
-    def _pre_process(self, data):
+    @abstractmethod
+    def predict(self, *args, **kwargs):
+        """
+        This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick).
+        This function
+
+        The sampler (using either tf.probability.mcmc and my ABC method) can then just call this to get samples
+
+        :return:
+        """
+        pass
+
+
+class DataWrapper:
+
+    def __init__(self, data, data_processors=None):
+        self.data_processors = data_processors if data_processors is not None else []
+        self._raw_data = data
+        self._data = None
+
+    @property
+    def data(self):
+        if self._data is not None:
+            data = self._data
+        else:
+            data = self.pre_process(self._raw_data)
+            self._data = data
+        return data
+
+    def __call__(self, *args, **kwargs):
+        return self.post_process(*args, **kwargs)
+
+    def pre_process(self, data):
         """
          Any necessary rescaling or weightings are performed here
         :return:
@@ -76,7 +58,7 @@ class Model(ABC):
             data = processor.process(data)
         return data
 
-    def _post_process(self, mean, variance):
+    def post_process(self, mean, variance):
         """
          Any necessary reshaping or un-weightings are performed here
 
@@ -93,13 +75,34 @@ class Model(ABC):
 
         return mean, variance
 
-    def _cube_wrap(self, data, name_prefix='Emulated '):
+
+class CubeWrapper:
+
+    def __init__(self, possible_cube, data_processors=None):
+        import iris.cube
+
+        if isinstance(possible_cube, iris.cube.Cube):
+            self.cube = possible_cube
+            data = possible_cube.data
+        else:
+            self.cube = None
+            data = possible_cube
+
+        self.data_wrapper = DataWrapper(data, data_processors)
+
+    def name(self):
+        return self.cube.name() if self.cube is not None else ''
+
+    @property
+    def dtype(self):
+        return self.data_wrapper.data.dtype
+
+    def wrap(self, data, name_prefix='Emulated '):
         """
-        Wrap back in a cube if one was provided for training
+        Wrap back in a cube if one was provided
 
         :param np.array data: Model output to wrap
-        :param args:
-        :param kwargs:
+        :param str name_prefix:
         :return:
         """
         from iris.cube import Cube
@@ -108,33 +111,87 @@ class Model(ABC):
         if isinstance(data, tf.Tensor):
             data = data.numpy()
 
-        if (data is not None) and (data.size > 0) and (self.training_cube is not None):
+        if (data is not None) and (data.size > 0) and (self.cube is not None):
 
             # Ensure we have a leading sample dimension
-            data = data.reshape((-1,) + self.training_cube.shape[1:])
+            data = data.reshape((-1,) + self.cube.shape[1:])
 
             # Create a coordinate for the sample dimension (which could be a different length to the original)
             sample_coord = [(DimCoord(np.arange(data.shape[0]), long_name="sample"), 0)]
             # Pull out the other coordinates - we can't rely on these being in order unfortunately, but we know the
             #  member dimension was the 0th
-            other_coords = [(c, self.training_cube.coord_dims(c)) for c in self.training_cube.dim_coords if
-                            self.training_cube.coord_dims(c) != (0,)]
+            other_coords = [(c, self.cube.coord_dims(c)) for c in self.cube.dim_coords if
+                            self.cube.coord_dims(c) != (0,)]
             out = Cube(data,
-                       long_name=name_prefix + self.training_cube.name(),
-                       units=self.training_cube.units,
+                       long_name=name_prefix + self.cube.name(),
+                       units=self.cube.units,
                        dim_coords_and_dims=other_coords + sample_coord,
-                       aux_coords_and_dims=self.training_cube._aux_coords_and_dims)
+                       aux_coords_and_dims=self.cube._aux_coords_and_dims)
         else:
             out = data
         return out
 
-    @abstractmethod
-    def train(self, verbose=False):
+
+class Emulator:
+    """
+    A class wrapping a statistical emulator
+
+    Attributes
+    ----------
+
+    training_data : iris.cube.Cube
+        The Iris cube representing the training data
+    name : str
+        A human-readable name for the model
+
+    """
+
+    def __init__(self, model, training_params, training_data, name='', gpu=0):
+        """
+
+        :param ModelAdaptor model: The (compiled) model to be wrapped
+        :param pd.DataFrame training_params: The training parameters
+        :param CubeWrapper training_data: The training data - the leading dimension should represent training samples
+        :param str name: Human readable name for the model
+        :param int gpu: The machine GPU to assign this model to
+        :param None or list of DataProcessors data_processors: A list of data processors to apply to the data
+        """
+        from contextlib import nullcontext
+        from iris.cube import Cube
+        import pandas as pd
+
+        assert isinstance(model, ModelAdaptor), "Model must be an instance of type ModelAdaptor"
+        self.model = model
+
+        if isinstance(training_data, CubeWrapper):
+            self.training_data = training_data
+        elif isinstance(training_data, np.ndarray) or isinstance(training_data, Cube):
+            self.training_data = CubeWrapper(training_data)
+        else:
+            raise ValueError("Training data must be a cube, numpy array or CubeWrapper instance")
+
+        self.name = name or training_data.name()
+
+        if isinstance(training_params, pd.DataFrame):
+            self.training_params = training_params.to_numpy()
+        elif isinstance(training_params, np.ndarray):
+            self.training_params = training_params
+        else:
+            raise ValueError("Training parameters must be a numpy array or pd.DataFrame instance")
+        self.n_params = training_params.shape[1]
+
+        # Set the GPU to use (if provided)
+        self.tf_device_context = tf.device('/gpu:{}'.format(gpu)) if gpu is not None else nullcontext
+
+        # Store the training data dtype (after pre-processing in case it has changed)
+        self.dtype = self.training_data.dtype
+
+    def train(self, verbose=False, *args, **kwargs):
         """
         Train on the training data
         :return:
         """
-        pass
+        self.model.train(self.training_params, self.training_data.data_wrapper.data, verbose=verbose, *args, **kwargs)
 
     def predict(self, *args, **kwargs):
         """
@@ -147,8 +204,8 @@ class Model(ABC):
         # TODO: Add a warning if .train hasn't been called?
         mean, var = self._predict(*args, **kwargs)
 
-        return (self._cube_wrap(mean, 'Emulated '),
-                self._cube_wrap(var, 'Variance in emulated '))
+        return (self.training_data.wrap(mean, 'Emulated '),
+                self.training_data.wrap(var, 'Variance in emulated '))
 
     def _predict(self, *args, **kwargs):
         """
@@ -159,22 +216,10 @@ class Model(ABC):
         :param kwargs:
         :return:
         """
-        mean, var = self._raw_predict(*args, **kwargs)
+        with self.tf_device_context:
+            mean, var = self.model.predict(*args, **kwargs)
         # Left un-nested for readability
-        return self._post_process(mean, var)
-
-    @property
-    @abstractmethod
-    def _raw_predict(self):
-        """
-        This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick).
-        This function
-
-        The sampler (using either tf.probability.mcmc and my ABC method) can then just call this to get samples
-
-        :return:
-        """
-        pass
+        return self.training_data.data_wrapper.post_process(mean, var)
 
     def batch_stats(self, sample_points, batch_size=1):
         """
@@ -195,8 +240,8 @@ class Model(ABC):
                                               total=sample_points.shape[0]))
         # Wrap the results in a cube (but pop off the sample dim which will always
         #  only be one in this case
-        return (self._cube_wrap(mean.numpy(), 'Ensemble mean ')[0],
-                self._cube_wrap(sd.numpy(), 'Ensemble standard deviation in ')[0])
+        return (self.training_data.wrap(mean.numpy(), 'Ensemble mean ')[0],
+                self.training_data.wrap(sd.numpy(), 'Ensemble standard deviation in ')[0])
 
 
 @tf.function

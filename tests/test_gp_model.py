@@ -1,5 +1,5 @@
 import unittest
-from GCEm.gp_model import GPModel
+from GCEm.gp_model import gp_model
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
@@ -86,7 +86,7 @@ class Simple1DTest(unittest.TestCase, GPTest):
 
         ensemble = get_1d_two_param_cube(params)
 
-        m = GPModel(params, ensemble)
+        m = gp_model(params, ensemble)
         m.train()
 
         cls.model = m
@@ -105,7 +105,7 @@ class Simple2DTest(unittest.TestCase, GPTest):
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params)
-        m = GPModel(params, ensemble)
+        m = gp_model(params, ensemble)
         m.train()
 
         cls.model = m
@@ -126,7 +126,7 @@ class Simple32bitTest(unittest.TestCase, GPTest):
         ensemble = get_three_param_cube(params)
         # Create a new, ensemble at lower precision
         ensemble = ensemble.copy(data=ensemble.data.astype('float32'))
-        m = GPModel(params, ensemble)
+        m = gp_model(params, ensemble)
         m.train()
 
         cls.model = m

@@ -7,9 +7,9 @@ A package for easily emulating earth systems data
     for new users.
 
 """
-from .gp_model import GPModel
+from .gp_model import gp_model
 from .sampler import Sampler
 
 __author__ = "Duncan Watson-Parris"
-__version__ = "0.1.0"
-__status__ = "Stable"
+__version__ = "0.2.0"
+__status__ = "Dev"

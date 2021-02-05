@@ -1,5 +1,5 @@
 import unittest
-from GCEm.nn_model import NNModel
+from GCEm.nn_model import cnn_model
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
@@ -18,7 +18,7 @@ class NNTest(unittest.TestCase):
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params)
-        m = NNModel(params, ensemble)
+        m = cnn_model(params, ensemble)
         m.train(epochs=50)
 
         cls.model = m
@@ -42,7 +42,7 @@ class NNTest(unittest.TestCase):
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params, time_len=1)
-        model = NNModel(params, ensemble)
+        model = cnn_model(params, ensemble)
         model.train(epochs=50)
 
         # Get the actual test data
@@ -61,13 +61,13 @@ class NNTest(unittest.TestCase):
         # The ConvNet won't work with a 1D cube
         ensemble = get_1d_two_param_cube(params)
         with self.assertRaises(ValueError):
-            model = NNModel(params, ensemble)
+            model = cnn_model(params, ensemble)
 
     def test_simple_predict_with_time(self):
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params, time_len=12)
-        model = NNModel(params, ensemble)
+        model = cnn_model(params, ensemble)
         model.train(epochs=50)
 
         # Get the actual test data
@@ -84,7 +84,7 @@ class NNTest(unittest.TestCase):
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params, time_len=12)
-        model = NNModel(params, ensemble, optimizer='Adam')
+        model = cnn_model(params, ensemble, optimizer='Adam')
         model.train(epochs=50)
 
         # Get the actual test data

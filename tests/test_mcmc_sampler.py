@@ -1,5 +1,5 @@
 import unittest
-from GCEm.gp_model import GPModel
+from GCEm.gp_model import gp_model
 from GCEm.utils import get_uniform_params
 from GCEm.sampler import MCMCSampler, _target_log_likelihood
 from tests.mock import *
@@ -70,7 +70,7 @@ class MCMCSamplerTest(unittest.TestCase):
         self.training_params = get_uniform_params(2)
         self.training_ensemble = get_1d_two_param_cube(self.training_params)
 
-        self.m = GPModel(self.training_params, self.training_ensemble)
+        self.m = gp_model(self.training_params, self.training_ensemble)
         self.m.train()
 
         # Test that sample returns the correct shape array for
@@ -99,7 +99,7 @@ class MCMCSamplerTest(unittest.TestCase):
         X = get_uniform_params(2)
         z = simple_polynomial_fn_two_param(*X.T)
 
-        m = GPModel(X, z)
+        m = gp_model(X, z)
         m.train()
 
         sampler = MCMCSampler(m, Cube(np.asarray([2.])),
