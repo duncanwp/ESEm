@@ -1,5 +1,5 @@
 import unittest
-from GCEm.gp_model import gp_model
+from GCEm import gp_model
 from GCEm.utils import get_uniform_params
 from GCEm.abc_sampler import ABCSampler, constrain, _calc_implausibility
 from tests.mock import *

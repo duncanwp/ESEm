@@ -1,5 +1,5 @@
 import unittest
-from GCEm.rf_model import rf_model
+from GCEm import rf_model
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose

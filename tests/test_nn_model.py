@@ -1,5 +1,5 @@
 import unittest
-from GCEm.nn_model import cnn_model
+from GCEm import cnn_model
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose

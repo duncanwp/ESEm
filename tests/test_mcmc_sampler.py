@@ -1,5 +1,5 @@
 import unittest
-from GCEm.gp_model import gp_model
+from GCEm import gp_model
 from GCEm.utils import get_uniform_params
 from GCEm.sampler import MCMCSampler, _target_log_likelihood
 from tests.mock import *

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from GCEm import Sampler
+from GCEm.sampler import Sampler
 from GCEm.utils import tf_tqdm
 
 
