@@ -38,23 +38,22 @@ class EmulatorTests(unittest.TestCase):
     def test_construct_emulator_with_data_type(self):
         # Test the interface correctly deals with invalid training data
 
-        emulator = Emulator(self.m, self.training_params, [100., 10.])
+        with self.assertRaises(ValueError):
+            emulator = Emulator(self.m, self.training_params, [100., 10.])
 
-        assert_array_equal(emulator.training_data.data, self.training_ensemble.data)
+    def test_construct_emulator_with_pandas_params(self):
+        import pandas as pd
+        # Test the interface correctly deals with pandas training params
 
-    def test_construct_emulator_with_numpy_params(self):
-        # Test the interface correctly deals with numpy training params
+        emulator = Emulator(self.m, pd.DataFrame(self.training_params), self.training_ensemble)
 
-        emulator = Emulator(self.m, self.training_params.numpy(), self.training_ensemble)
-
-        assert_array_equal(emulator.training_data.data, self.training_ensemble.data)
+        assert_array_equal(emulator.training_params, self.training_params)
 
     def test_construct_emulator_with_invalid_params(self):
         # Test the interface correctly deals with invalid training params
 
-        emulator = Emulator(self.m, [100., 10.], self.training_ensemble)
-
-        assert_array_equal(emulator.training_data.data, self.training_ensemble.data)
+        with self.assertRaises(ValueError):
+            emulator = Emulator(self.m, [100., 10.], self.training_ensemble)
 
     def test_emulator_prediction_cube(self):
         # Test the interface correctly deals with a cube training data
