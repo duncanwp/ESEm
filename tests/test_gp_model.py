@@ -95,6 +95,54 @@ class Simple1DTest(unittest.TestCase, GPTest):
         cls.eval_fn = eval_1d_cube
 
 
+class Simple1DTestSpecifiedKernel(unittest.TestCase, GPTest):
+    """
+    Setup for the simple 1D 2 parameter test case with user specified kernel
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        m = gp_model(params, ensemble, kernel=['Bias', "Polynomial", 'Linear', "RBF"])
+        m.train()
+
+        cls.model = m
+        cls.params = params
+        cls.test_params = test
+        cls.eval_fn = eval_1d_cube
+
+
+class Simple1DTestUserKernel(unittest.TestCase, GPTest):
+    """
+    Setup for the simple 1D 2 parameter test case with user provided kernel
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        import gpflow
+
+        kernel = gpflow.kernels.RBF(lengthscales=[0.5] * 2, variance=0.01) + \
+                 gpflow.kernels.Linear(variance=[1.] * 2) + \
+                 gpflow.kernels.Polynomial(variance=[1.] * 2) + \
+                 gpflow.kernels.Bias()
+
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        m = gp_model(params, ensemble, kernel=kernel)
+        m.train()
+
+        cls.model = m
+        cls.params = params
+        cls.test_params = test
+        cls.eval_fn = eval_1d_cube
+
+
 class Simple2DTest(unittest.TestCase, GPTest):
     """
     Setup for the simple 2D 3 parameter test case.

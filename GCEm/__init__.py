@@ -17,7 +17,44 @@ __status__ = "Dev"
 
 
 def gp_model(training_params, training_data, data_processors=None,
-             kernel=None, noise_variance=1., name='', gpu=0):
+             kernel=None, kernel_op='add', active_dims=None, noise_variance=1.,
+             name='', gpu=0):
+    """
+    Create a Gaussian process (GP) based emulator with provided `training_params` (X) and `training_data` (Y).
+
+    The `kernel` is a key parameter in GP emulation and care should be taken in choosing it.
+
+    Parameters
+    ----------
+    training_params: pd.DataFrame
+        The training parameters
+    training_data: iris.cube.Cube or array_like
+        The training data - the leading dimension should represent training samples
+    data_processors: list of GCEm.data_processors.DataProcessor
+        A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
+        un-transformed before being returned from the Emulator.
+    kernel: gpflow.kernels.Kernel or list of str or None
+        The GP kernel to use.  A GPFlow kernel can be specified directly, or a list of kernel names can be provided
+        which will be initialised using the default values (of the correct shape) and combined using `kernel_op`.
+        Alternatively no kernel can be specified and a default will be used.
+    kernel_op : {'add', 'mul'}
+        The operation to perform in order to combine the specified `kernel`s. Only used if `kernel` is a list of strings.
+    noise_variance: float
+        The noise variance to initialise the GP regression model
+    active_dims: list of int or slice or None
+        The dimensions to train the GP over (by default all of the dimensions are used)
+    name: str
+        An optional name for the emulator
+    gpu: int
+        The GPU to use (only applicable for multi-GPU) machines
+
+    Returns
+    -------
+    Emulator
+        A GCEm emulator object which can be trained and sampled from
+
+    """
+
     from .model_adaptor import GPFlowModel
     import tensorflow as tf
     import gpflow
@@ -29,38 +66,81 @@ def gp_model(training_params, training_data, data_processors=None,
     data_processors.extend([Recast(default_float()), Flatten()])
     data = CubeWrapper(training_data, data_processors=data_processors)
 
-    kernel_dict = {
-        "RBF": gpflow.kernels.RBF,
-        "Linear": gpflow.kernels.Linear,
-        "Polynomial": gpflow.kernels.Polynomial,
-        "Bias": gpflow.kernels.Bias
-    }
-
-    def init_kernel(k):
-        if type(k) == gpflow.kernels.Constant:  # E.g., Bias
-            return k()
-        elif type(k) == gpflow.kernels.Linear:  # This covers polynomial too
-            return k(variance=[1.] * n_params)
-        elif type(k) == gpflow.kernels.Stationary:  # This covers e.g. RBF
-            return k(lengthscales=[1.] * n_params)
     if isinstance(kernel, list):
-        kernel = sum(init_kernel(kernel_dict[k]) for k in kernel)
+        kernel = _get_gpflow_kernel(kernel, n_params, active_dims=active_dims, operator=kernel_op)
     elif kernel is None:
-        kernel = gpflow.kernels.RBF(lengthscales=[0.5] * n_params, variance=0.01) + \
-                 gpflow.kernels.Linear(variance=[1.] * n_params) + \
-                 gpflow.kernels.Polynomial(variance=[1.] * n_params) + \
-                 gpflow.kernels.Bias()
+        # TODO Maybe this should just use the above mechanism?
+        kernel = gpflow.kernels.RBF(lengthscales=[0.5] * n_params, variance=0.01, active_dims=active_dims) + \
+                 gpflow.kernels.Linear(variance=[1.] * n_params, active_dims=active_dims) + \
+                 gpflow.kernels.Polynomial(variance=[1.] * n_params, active_dims=active_dims) + \
+                 gpflow.kernels.Bias(active_dims=active_dims)
         print("WARNING: Using default kernel - be sure you understand the assumptions this implies")
     else:
         pass  # Use the user specified kernel
 
-    # TODO: Look at the noise_variance term here - what does it represent?
     model = GPFlowModel(gpflow.models.GPR(data=(training_params, data.data_wrapper.data),
                                           kernel=kernel,
                                           noise_variance=tf.constant(noise_variance,
                                           dtype=data.dtype)))
 
     return Emulator(model, training_params, data, name=name, gpu=gpu)
+
+
+def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
+    """
+        Helper function for creating a single GPFlow kernel from a combination of kernel names.
+
+    Parameters
+    ----------
+    names: list of str
+        A list of the names of the kernels to be combined
+    n_params: int
+        The number of training parameters
+    active_dims: list of int or slice or None
+        The active dimensions to allow the kernel to fit
+    operator: {'add', 'mul'}
+        The operator to use to combine the kernels
+
+    Returns
+    -------
+    gpflow.kernels.Kernel
+        The combined GPFlow kernel
+    """
+    import gpflow.kernels
+    from operator import add, mul
+    from functools import reduce
+
+    kernel_dict = {
+        "RBF": gpflow.kernels.RBF,
+        "Linear": gpflow.kernels.Linear,
+        "Polynomial": gpflow.kernels.Polynomial,
+        "Bias": gpflow.kernels.Bias,
+        "Cosine": gpflow.kernels.Cosine,
+        "Exponential": gpflow.kernels.Exponential,
+        "Matern12": gpflow.kernels.Matern12,
+        "Matern32": gpflow.kernels.Matern32,
+        "Matern52": gpflow.kernels.Matern52,
+    }
+
+    operator_dict = {
+        'add': add,
+        'mul': mul
+    }
+
+    def init_kernel(k):
+        """
+        Initialise a GPFlow kernel with the correct shape (default) variance and lengthscales
+        """
+        if issubclass(k, gpflow.kernels.Constant):  # E.g., Bias
+            return k(active_dims=active_dims)
+        elif issubclass(k, gpflow.kernels.Linear):  # This covers polynomial too
+            return k(variance=[1.] * n_params, active_dims=active_dims)
+        elif issubclass(k, gpflow.kernels.Stationary):  # This covers e.g. RBF
+            return k(lengthscales=[1.] * n_params, active_dims=active_dims)
+        else:
+            raise ValueError("Invalid Kernel: {}".format(k))
+
+    return reduce(operator_dict[operator], (init_kernel(kernel_dict[k]) for k in names))
 
 
 def cnn_model(training_params, training_data, data_processors=None,
