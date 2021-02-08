@@ -1,5 +1,5 @@
 import unittest
-from GCEm.rf_model import RFModel
+from GCEm import rf_model
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
@@ -67,9 +67,9 @@ class Simple1DTest(unittest.TestCase, RFTest):
     def setUpClass(cls) -> None:
         params, test = pop_elements(get_uniform_params(2), 10, 12)
         ensemble = get_1d_two_param_cube(params)
-        m = RFModel(training_params=params,
-                    training_data=ensemble,
-                    random_state=0)
+        m = rf_model(training_params=params,
+                     training_data=ensemble,
+                     random_state=0)
         m.train()
 
         cls.model = m
@@ -87,9 +87,9 @@ class Simple2DTest(unittest.TestCase, RFTest):
     def setUpClass(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
         ensemble = get_three_param_cube(params)
-        m = RFModel(training_params=params,
-                    training_data=ensemble,
-                    random_state=0)
+        m = rf_model(training_params=params,
+                     training_data=ensemble,
+                     random_state=0)
         m.train()
 
         cls.model = m
@@ -110,9 +110,9 @@ class Simple32bitTest(unittest.TestCase, RFTest):
         ensemble = get_three_param_cube(params)
         # Create a new, ensemble at lower precision
         ensemble = ensemble.copy(data=ensemble.data.astype('float32'))
-        m = RFModel(training_params=params,
-                    training_data=ensemble,
-                    random_state=0)
+        m = rf_model(training_params=params,
+                     training_data=ensemble,
+                     random_state=0)
         m.train()
 
         cls.model = m

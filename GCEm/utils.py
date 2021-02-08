@@ -14,7 +14,8 @@ def add_121_line(ax):
     ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
     ax.set_xlim(lims)
     ax.set_ylim(lims)
-    
+
+
 def prettify_plot(ax):
     """utility function for making plots prettier"""
     ax.get_xaxis().tick_bottom()
@@ -24,6 +25,7 @@ def prettify_plot(ax):
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+
 
 def plot_results(ax, truth, pred, title):
     """ Validation plot for LeaveOneOut """
@@ -43,6 +45,7 @@ def plot_results(ax, truth, pred, title):
     ax.set_title(title)
     ax.set_xlabel('Truth')
     ax.set_ylabel('Prediction')
+
 
 def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, miny=None, maxx=None, maxy=None):
     from scipy import stats
@@ -165,17 +168,18 @@ def ensemble_collocate(ensemble, observations, member_dimension='job'):
     col_ensemble = col_members.concatenate_cube()
     return col_ensemble
 
+
 def LeaveOneOut(Xdata, Ydata, model='RandomForest', **model_kwargs):
     """
     Function to perform LeaveOneOut cross-validation with different models. 
     """
-    from GCEm.rf_model import RFModel
-    from GCEm.gp_model import GPModel
-    from GCEm.nn_model import NNModel
+    from GCEm import rf_model
+    from GCEm import gp_model
+    from GCEm import cnn_model
     
-    models = {'RandomForest': RFModel,
-              'GaussianProcess': GPModel,
-              'NeuralNet': NNModel}
+    models = {'RandomForest': rf_model,
+              'GaussianProcess': gp_model,
+              'NeuralNet': cnn_model}
     
     if model not in models.keys():
         raise Exception(f"Model needs to be one of {list(models.keys())}, found '{model}'.")

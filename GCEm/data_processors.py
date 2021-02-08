@@ -95,3 +95,17 @@ class Reshape(DataProcessor):
             mean = mean[..., 0]
             variance = variance[..., 0]
         return mean, variance
+
+
+class Recast(DataProcessor):
+
+    def __init__(self, new_type):
+        self.new_type = new_type
+
+    def process(self, data):
+        self.old_type = data.dtype
+        return data.astype(self.new_type)
+
+    def unprocess(self, mean, variance):
+        # I just leave this currently
+        return mean, variance

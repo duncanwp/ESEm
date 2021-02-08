@@ -142,3 +142,19 @@ def eval_cube(params, **kwargs):
     cube.data *= simple_polynomial_fn_three_param(*params)
 
     return cube
+
+
+def get_mock_model(eval_X=None):
+    from GCEm.model_adaptor import ModelAdaptor
+    eval_X = eval_X or (np.arange(10), np.arange(10))
+    predict_mean = np.repeat(simple_polynomial_fn_two_param(*eval_X)[:, np.newaxis], 100, 1)
+    predict_var = np.ones_like(predict_mean)
+
+    class MockModel(ModelAdaptor):
+        def predict(self):
+            return predict_mean, predict_var
+
+        def train(self, training_params, training_data, **kwargs):
+            pass
+
+    return MockModel(None)

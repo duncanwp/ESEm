@@ -1,5 +1,5 @@
 import unittest
-from GCEm.gp_model import GPModel
+from GCEm import gp_model
 from GCEm.utils import get_uniform_params
 from GCEm.abc_sampler import ABCSampler, constrain, _calc_implausibility
 from tests.mock import *
@@ -12,7 +12,7 @@ class ABCSamplerTest(unittest.TestCase):
         self.training_params = get_uniform_params(2)
         self.training_ensemble = get_1d_two_param_cube(self.training_params)
 
-        self.m = GPModel(self.training_params, self.training_ensemble)
+        self.m = gp_model(self.training_params, self.training_ensemble)
         self.m.train()
 
     def test_implausibility_scalar_uncertainty(self):
@@ -405,7 +405,7 @@ class ABCSamplerTest2D(unittest.TestCase):
         self.training_params = get_uniform_params(3)
         self.training_ensemble = get_three_param_cube(self.training_params)
 
-        self.m = GPModel(self.training_params, self.training_ensemble)
+        self.m = gp_model(self.training_params, self.training_ensemble)
         self.m.train()
 
     def test_implausibility_scalar_uncertainty_interface(self):
