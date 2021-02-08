@@ -43,7 +43,7 @@ class Emulator:
         else:
             raise ValueError("Training data must be a cube, numpy array or CubeWrapper instance")
 
-        self.name = name or training_data.name()
+        self.name = name or self.training_data.name()
 
         if isinstance(training_params, pd.DataFrame):
             self.training_params = training_params.to_numpy()
@@ -59,12 +59,12 @@ class Emulator:
         # Store the training data dtype (after pre-processing in case it has changed)
         self.dtype = self.training_data.dtype
 
-    def train(self, verbose=False, *args, **kwargs):
+    def train(self, verbose=False, **kwargs):
         """
         Train on the training data
         :return:
         """
-        self.model.train(self.training_params, self.training_data.data_wrapper.data, verbose=verbose, *args, **kwargs)
+        self.model.train(self.training_params, self.training_data.data, verbose=verbose, **kwargs)
 
     def predict(self, *args, **kwargs):
         """
@@ -92,7 +92,7 @@ class Emulator:
         with self.tf_device_context:
             mean, var = self.model.predict(*args, **kwargs)
         # Left un-nested for readability
-        return self.training_data.data_wrapper.post_process(mean, var)
+        return self.training_data.data_wrapper(mean, var)
 
     def batch_stats(self, sample_points, batch_size=1):
         """

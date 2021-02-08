@@ -66,17 +66,16 @@ def gp_model(training_params, training_data, data_processors=None,
     data_processors.extend([Recast(default_float()), Flatten()])
     data = CubeWrapper(training_data, data_processors=data_processors)
 
+    if kernel is None:
+        print("WARNING: Using default kernel - be sure you understand the assumptions this implies. "
+              "Consult e.g.  http://www.cs.toronto.edu/~duvenaud/cookbook/ for an excellent description of "
+              "different kernel choices.")
+        kernel = ['RBF', 'Linear', 'Polynomial', 'Bias']  # This gets turned in to a real kernel next
     if isinstance(kernel, list):
         kernel = _get_gpflow_kernel(kernel, n_params, active_dims=active_dims, operator=kernel_op)
-    elif kernel is None:
-        # TODO Maybe this should just use the above mechanism?
-        kernel = gpflow.kernels.RBF(lengthscales=[0.5] * n_params, variance=0.01, active_dims=active_dims) + \
-                 gpflow.kernels.Linear(variance=[1.] * n_params, active_dims=active_dims) + \
-                 gpflow.kernels.Polynomial(variance=[1.] * n_params, active_dims=active_dims) + \
-                 gpflow.kernels.Bias(active_dims=active_dims)
-        print("WARNING: Using default kernel - be sure you understand the assumptions this implies")
-    else:
-        pass  # Use the user specified kernel
+    elif not isinstance(kernel, gpflow.kernels.Kernel):
+        raise ValueError("Invalid kernel specified: {}".format(kernel))
+    # Else, use the user specified kernel
 
     model = GPFlowModel(gpflow.models.GPR(data=(training_params, data.data_wrapper.data),
                                           kernel=kernel,
@@ -115,6 +114,7 @@ def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
         "Linear": gpflow.kernels.Linear,
         "Polynomial": gpflow.kernels.Polynomial,
         "Bias": gpflow.kernels.Bias,
+        "White": gpflow.kernels.White,
         "Cosine": gpflow.kernels.Cosine,
         "Exponential": gpflow.kernels.Exponential,
         "Matern12": gpflow.kernels.Matern12,
@@ -127,26 +127,75 @@ def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
         'mul': mul
     }
 
+    if operator not in operator_dict:
+        raise ValueError("Invalid operator: {}. Use either 'add' or 'mul'.".format(operator))
+
     def init_kernel(k):
         """
         Initialise a GPFlow kernel with the correct shape (default) variance and lengthscales
         """
-        if issubclass(k, gpflow.kernels.Constant):  # E.g., Bias
-            return k(active_dims=active_dims)
-        elif issubclass(k, gpflow.kernels.Linear):  # This covers polynomial too
-            return k(variance=[1.] * n_params, active_dims=active_dims)
-        elif issubclass(k, gpflow.kernels.Stationary):  # This covers e.g. RBF
-            return k(lengthscales=[1.] * n_params, active_dims=active_dims)
-        else:
-            raise ValueError("Invalid Kernel: {}".format(k))
+        try:
+            K_Class = kernel_dict[k]
+        except KeyError:
+            raise ValueError("Invalid Kernel: {}. Please choose from one of: {}".format(k, kernel_dict))
 
-    return reduce(operator_dict[operator], (init_kernel(kernel_dict[k]) for k in names))
+        if issubclass(K_Class, gpflow.kernels.Constant):  # E.g., Bias
+            return K_Class(active_dims=active_dims)
+        elif issubclass(K_Class, gpflow.kernels.Linear):  # This covers polynomial too
+            return K_Class(variance=[1.] * n_params, active_dims=active_dims)
+        elif issubclass(K_Class, gpflow.kernels.Stationary):  # This covers e.g. RBF
+            return K_Class(lengthscales=[1.] * n_params, active_dims=active_dims)
+
+    return reduce(operator_dict[operator], (init_kernel(k) for k in names))
 
 
 def cnn_model(training_params, training_data, data_processors=None,
               filters=12, learning_rate=1e-3, decay=0.01,
               kernel_size=(3, 5), loss='mean_squared_error',
               activation='tanh', optimizer='RMSprop', name='', gpu=0):
+    """
+    Create a Convolutional Neural Network Emulator using Keras.
+
+    Parameters
+    ----------
+    training_params: pd.DataFrame
+        The training parameters
+    training_data: iris.cube.Cube or array_like
+        The training data - the leading dimension should represent training samples
+    data_processors: list of GCEm.data_processors.DataProcessor
+        A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
+        un-transformed before being returned from the Emulator.
+    filters: int
+        The dimensionality of the first convolutional layer output space
+    learning_rate: float
+        The learning rate to use with the chosen optimizer
+    decay: float
+        Any decay to apply to the learning rate
+    kernel_size: tuple of int
+        The convolutional kernel size
+    loss: str
+        The loss function to train against (see https://keras.io/api/losses/)
+    activation: str
+        The activation function to use in the final CNN layer (see https://keras.io/api/layers/activations/)
+    optimizer: {'RMSprop', 'Adam'}
+        The optimizer to train the model with
+    name: str
+        An optional name for the emulator
+    gpu: int
+        The GPU to use (only applicable for multi-GPU) machines
+
+
+    Returns
+    -------
+    Emulator
+        A GCEm emulator object which can be trained and sampled from
+
+
+    Notes
+    -----
+    The Keras model is compiled but not trained until `train` is called on the returned `Emulator` object.
+
+    """
     from .model_adaptor import KerasModel
     from tensorflow.keras.layers import Dense, Input, Reshape, Conv2DTranspose
     from tensorflow.keras.models import Model
@@ -195,6 +244,34 @@ def cnn_model(training_params, training_data, data_processors=None,
 
 
 def rf_model(training_params, training_data, data_processors=None, name='', gpu=0, *args, **kwargs):
+    """
+    Create a Random Forest Emulator using sklearn.
+
+
+    Parameters
+    ----------
+    training_params: pd.DataFrame
+        The training parameters
+    training_data: iris.cube.Cube or array_like
+        The training data - the leading dimension should represent training samples
+    data_processors: list of GCEm.data_processors.DataProcessor
+        A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
+        un-transformed before being returned from the Emulator.
+    name: str
+        An optional name for the emulator
+    gpu: int
+        The GPU to use (only applicable for multi-GPU) machines
+    args: list
+        List of optional arguments for sklearn.ensemble.RandomForestRegressor
+    kwargs: dict
+        Dict of optional keyword arguments for sklearn.ensemble.RandomForestRegressor
+
+    Returns
+    -------
+    Emulator
+        A GCEm emulator object which can be trained and sampled from
+
+    """
     from .model_adaptor import SKLearnModel
     from sklearn.ensemble import RandomForestRegressor
     rfmodel = SKLearnModel(RandomForestRegressor(*args, **kwargs))

@@ -5,6 +5,86 @@ from tests.mock import *
 from numpy.testing import assert_allclose
 
 
+class GPModelTest(unittest.TestCase):
+    """
+    Setup for the simple test case with user provided kernel
+    """
+
+    def test_user_specified_kernel(self):
+        """
+        Setup for the simple 1D 2 parameter test case with user specified kernel
+        """
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        m = gp_model(params, ensemble, kernel=['Bias', "Polynomial", 'Linear', "RBF"])
+        m.train()
+
+        # self.assert_(m, m.model.kernel)
+
+    def test_user_specified_invalid_kernel(self):
+        """
+        Setup for the simple 1D 2 parameter test case with user specified kernel
+        """
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        with self.assertRaises(ValueError):
+            m = gp_model(params, ensemble, kernel=['Blah'])
+
+    def test_user_specified_single_kernel(self):
+        """
+        Setup for the simple 1D 2 parameter test case with user specified kernel
+        """
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        m = gp_model(params, ensemble, kernel=['RBF'])
+        m.train()
+
+        # self.assert_(m, m.model.kernel)
+
+    def test_user_specified_invalid_op(self):
+        """
+        Setup for the simple 1D 2 parameter test case with user specified kernel
+        """
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        with self.assertRaises(ValueError):
+            m = gp_model(params, ensemble, kernel=['RBF', 'White'], kernel_op='Blah')
+
+    def test_user_provided_kernel(self):
+        """
+        Setup for the simple 1D 2 parameter test case with user provided kernel
+        """
+        import gpflow
+
+        kernel = gpflow.kernels.RBF(lengthscales=[0.5] * 2, variance=0.01) + \
+                 gpflow.kernels.Linear(variance=[1.] * 2) + \
+                 gpflow.kernels.Polynomial(variance=[1.] * 2) + \
+                 gpflow.kernels.Bias()
+
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        m = gp_model(params, ensemble, kernel=kernel)
+        m.train()
+
+    def test_user_provided_invalid_kernel(self):
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        with self.assertRaises(ValueError):
+            m = gp_model(params, ensemble, kernel=5)
+
+
 class GPTest(object):
     """
     Tests on the GPModel class and its methods. The actual model is setup

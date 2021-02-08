@@ -5,6 +5,23 @@ from tests.mock import *
 from numpy.testing import assert_allclose
 
 
+class NNModelTest(unittest.TestCase):
+    """
+    Setup for the simple test case with user provided kernel
+    """
+
+    def test_incorrect_optimizer(self):
+        """
+        Setup for the simple 1D 2 parameter test case with user specified kernel
+        """
+        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+        ensemble = get_1d_two_param_cube(params)
+
+        with self.assertRaises(ValueError):
+            m = cnn_model(params, ensemble, optimizer='blah')
+
+
 class NNTest(unittest.TestCase):
     """
     Tests on the GPModel class and its methods. The actual model is setup

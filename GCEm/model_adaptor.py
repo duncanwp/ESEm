@@ -12,7 +12,6 @@ class ModelAdaptor(ABC):
         Train on the training data
         :return:
         """
-        pass
 
     @abstractmethod
     def predict(self, *args, **kwargs):
@@ -24,7 +23,6 @@ class ModelAdaptor(ABC):
 
         :return:
         """
-        pass
 
 
 class SKLearnModel(ModelAdaptor):

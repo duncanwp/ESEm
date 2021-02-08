@@ -68,6 +68,10 @@ class CubeWrapper:
         return self.cube.name() if self.cube is not None else ''
 
     @property
+    def data(self):
+        return self.data_wrapper.data
+
+    @property
     def dtype(self):
         return self.data_wrapper.data.dtype
 
