@@ -11,6 +11,9 @@ Welcome to GCEm's documentation!
    :caption: Contents:
 
    installation
+   emulation
+   calibration
+   examples
 
 
 Indices and tables
