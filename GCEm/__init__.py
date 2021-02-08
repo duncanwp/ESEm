@@ -139,12 +139,16 @@ def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
         except KeyError:
             raise ValueError("Invalid Kernel: {}. Please choose from one of: {}".format(k, kernel_dict))
 
-        if issubclass(K_Class, gpflow.kernels.Constant):  # E.g., Bias
+        if issubclass(K_Class, gpflow.kernels.Static):  # This covers e.g. White
+            return K_Class(active_dims=active_dims)
+        elif issubclass(K_Class, gpflow.kernels.Constant):  # E.g., Bias
             return K_Class(active_dims=active_dims)
         elif issubclass(K_Class, gpflow.kernels.Linear):  # This covers polynomial too
             return K_Class(variance=[1.] * n_params, active_dims=active_dims)
         elif issubclass(K_Class, gpflow.kernels.Stationary):  # This covers e.g. RBF
             return K_Class(lengthscales=[1.] * n_params, active_dims=active_dims)
+        else:
+            raise ValueError("Unexpected Kernel type: {}".format(K_Class))  # This shouldn't happen...
 
     return reduce(operator_dict[operator], (init_kernel(k) for k in names))
 
