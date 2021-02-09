@@ -7,7 +7,8 @@ dependencies = ["scitools-iris",
                 "tensorflow",
                 "numpy",
                 'matplotlib',
-                'scipy']
+                'scipy',
+                'tqdm']
 
 optional_dependencies = {"Keras": ["keras"], "GPFlow": ["gpflow"], 'sklearn': ['sklearn']}
 
