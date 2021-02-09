@@ -3,6 +3,7 @@ from GCEm import gp_model
 from GCEm.utils import get_uniform_params
 from GCEm.sampler import MCMCSampler, _target_log_likelihood
 from tests.mock import *
+from tests import skip_on_ci
 from numpy.testing import assert_allclose
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -94,6 +95,7 @@ class MCMCSamplerTest(unittest.TestCase):
         #  and we don't need to test the tf mcmc code
         self.assert_(valid_samples.shape == (10, 2))
 
+    @skip_on_ci  # This is more of an integration test and takes too long on CI
     def test_simple_sample(self):
         from iris.cube import Cube
         X = get_uniform_params(2)
