@@ -10,10 +10,14 @@ A package for easily emulating earth systems data
 from .cube_wrapper import CubeWrapper
 from .data_processors import Recast, Whiten, Reshape as Reshaper, Flatten
 from .emulator import Emulator
+import pkg_resources
 
-__author__ = "Duncan Watson-Parris"
-__version__ = "0.2.0"
-__status__ = "Dev"
+try:
+    __version__ = pkg_resources.get_distribution("GCEm").version
+except Exception:
+    # Local copy or not installed with setuptools.
+    # Disable minimum version checks on downstream libraries.
+    __version__ = "999"
 
 
 def gp_model(training_params, training_data, data_processors=None,

@@ -19,7 +19,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            pytest -v --cov=./GCEm --junitxml=./test_results/all_tests/results.xml -m "not slow" ./tests
+            pytest -v --cov=./GCEm --junitxml=./test_results/all_tests/results.xml -m "not slow" -n 4
       - run:
           name: Upload coverage report
           command: |

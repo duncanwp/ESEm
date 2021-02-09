@@ -2,8 +2,6 @@
 # conda create -n <name> --file conda-requirements.txt
 
 # Mandatory dependencies
-tensorflow-gpu
-gpflow
 iris
 tqdm
 

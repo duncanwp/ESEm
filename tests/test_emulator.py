@@ -3,7 +3,7 @@ from GCEm.utils import get_uniform_params
 from GCEm.cube_wrapper import CubeWrapper
 from tests.mock import get_mock_model, get_1d_two_param_cube
 from numpy.testing import assert_array_equal
-from contextlib import ExitStack as does_not_raise
+from contextlib import nullcontext
 import pandas as pd
 import pytest
 
@@ -11,9 +11,9 @@ import pytest
 @pytest.mark.parametrize(
     "training_data,expectation",
     [
-        (get_1d_two_param_cube(get_uniform_params(3)), does_not_raise()),
-        (get_1d_two_param_cube(get_uniform_params(3)).data, does_not_raise()),
-        (CubeWrapper(get_1d_two_param_cube(get_uniform_params(3))), does_not_raise()),
+        (get_1d_two_param_cube(get_uniform_params(3)), nullcontext()),
+        (get_1d_two_param_cube(get_uniform_params(3)).data, nullcontext()),
+        (CubeWrapper(get_1d_two_param_cube(get_uniform_params(3))), nullcontext()),
         ([100., 50.], pytest.raises(ValueError)),
     ],
 )
@@ -28,8 +28,8 @@ def test_construct_emulator_with_different_training_data(training_data, expectat
 @pytest.mark.parametrize(
     "training_params,expectation",
     [
-        (get_uniform_params(3), does_not_raise()),
-        (pd.DataFrame(get_uniform_params(3)), does_not_raise()),
+        (get_uniform_params(3), nullcontext()),
+        (pd.DataFrame(get_uniform_params(3)), nullcontext()),
         ([100., 50.], pytest.raises(ValueError)),
     ],
 )
