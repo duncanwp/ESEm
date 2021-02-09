@@ -7,16 +7,15 @@ Once conda is installed, you can easily install CIS with the following command::
 
     $ conda install -c conda-forge cis
 
-
 If you don't already have conda, you must first download and install it. Anaconda is a free conda package that includes Python and many common scientific and data analysis libraries, and is available `here <http://continuum.io/downloads>`_. Further documentation on using Anaconda and the features it provides can be found at http://docs.continuum.io/anaconda/index.html.
 
-Then pip install GPflow and tensorflow-gpu::
+In our experience the pip install of tensorflow has better hardware support than on conda. Installing GCEm this way will automatically include tensorflow (with GPU support)::
 
-    $ pip install gpflow tensorflow-gpu
+    $ pip install GCEm
 
-Optionally also install keras::
+Optionally also install GPFlow, keras or scikit-learn ::
 
-    $ conda install -c conda-forge keras
+    $ pip install GCEm[gpflow]
 
 Dependencies
 ============

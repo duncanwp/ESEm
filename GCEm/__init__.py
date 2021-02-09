@@ -30,9 +30,9 @@ def gp_model(training_params, training_data, data_processors=None,
 
     Parameters
     ----------
-    training_params: pd.DataFrame
+    training_params: DataFrame
         The training parameters
-    training_data: iris.cube.Cube or array_like
+    training_data: Cube or array_like
         The training data - the leading dimension should represent training samples
     data_processors: list of GCEm.data_processors.DataProcessor
         A list of `DataProcessor`s to apply to the data transparently before training. Model output will be

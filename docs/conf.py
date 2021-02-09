@@ -33,6 +33,11 @@ release = 'v0.2.0'
 extensions = [
     'nbsphinx',
     'sphinx.ext.mathjax',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.extlinks",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -43,6 +48,36 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+autosummary_generate = True
+
+autodoc_typehints = "none"
+
+napoleon_google_docstring = False
+napoleon_numpy_docstring = True
+
+napoleon_use_param = False
+napoleon_use_rtype = False
+napoleon_preprocess_types = True
+napoleon_type_aliases = {
+    # general terms
+    "iterable": ":term:`iterable`",
+    "callable": ":py:func:`callable`",
+    "dict_like": ":term:`dict-like <mapping>`",
+    "dict-like": ":term:`dict-like <mapping>`",
+    "string": ":class:`string <str>`",
+    # numpy terms
+    "array_like": ":term:`array_like`",
+    "array-like": ":term:`array-like <array_like>`",
+    "scalar": ":term:`scalar`",
+    "array": ":term:`array`",
+    "hashable": ":term:`hashable <name>`",
+    # objects without namespace
+    "Cube": "~iris.cube.Cube",
+    "ndarray": "~numpy.ndarray",
+    "MaskedArray": "~numpy.ma.MaskedArray",
+    "dtype": "~numpy.dtype",
+    "DataFrame": "~pandas.DataFrame",
+}
 
 # -- Options for HTML output -------------------------------------------------
 

@@ -14,7 +14,7 @@ Welcome to GCEm's documentation!
    emulation
    calibration
    examples
-
+   api
 
 Indices and tables
 ==================

@@ -120,20 +120,34 @@ def get_uniform_params(n_params, n_samples=5):
     Slightly convoluted method for getting a flat set of points evenly
      sampling a (unit) N-dimensional space
 
-    :param int n_params: The number of parameters (dimensions) to sample from
-    :param int n_samples: The number of uniformly spaced samples (in each dimension)
-    :return np.array: n_samples**n_params parameters uniformly sampled
+    Parameters
+    ----------
+    n_params: int
+        The number of parameters (dimensions) to sample from
+    n_samples: int
+        The number of uniformly spaced samples (in each dimension)
+
+    Returns
+    -------
+    ndarray
+        n_samples**n_params parameters uniformly sampled
     """
     return np.stack([*np.meshgrid(*[np.linspace(0., 1., n_samples)]*n_params)]).reshape(-1, n_params)
 
 
 def get_random_params(n_params, n_samples=5):
     """
-     Get points randomly sampling a (unit) N-dimensional space
+         Get points randomly sampling a (unit) N-dimensional space
 
-    :param int n_params: The number of parameters (dimensions) to sample from
-    :param int n_samples: The number of parameters to (radnomly) sample
-    :return np.array:
+    Parameters
+    ----------
+    n_params: int
+        The number of parameters (dimensions) to sample from
+    n_samples: int
+        The number of parameters to (radnomly) sample
+    Returns
+    -------
+
     """
     return np.random.uniform(size=n_params*n_samples).reshape(n_samples, n_params)
 
@@ -142,10 +156,15 @@ def ensemble_collocate(ensemble, observations, member_dimension='job'):
     """
      Efficiently collocate many ensemble members on to a set of (un-gridded) observations
 
-    :param GriddedData ensemble:
-    :param UngriddedData observations:
-    :param str member_dimension:
-    :return:
+    Parameters
+    ----------
+    ensemble: ~cis.data_io.gridded_data.GriddedData
+    observations: ~cis.data_io.ungridded_data.UngriddedData
+    member_dimension: str
+
+    Returns
+    -------
+
     """
     from iris.cube import Cube, CubeList
     from iris.coords import DimCoord, AuxCoord

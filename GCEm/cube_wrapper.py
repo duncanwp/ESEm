@@ -1,4 +1,3 @@
-import iris.cube
 import numpy as np
 import tensorflow as tf
 
