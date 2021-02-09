@@ -8,3 +8,4 @@ setuptools
 
 # testing
 pytest-cov
+pytest-xdist
