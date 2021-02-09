@@ -18,13 +18,13 @@ jobs:
       - run:
           name: Run tests
           command: |
-            pytest -v --cov=./GCEm --junitxml=./GCEm ./tests
+            pytest -v --cov=./GCEm --junitxml=./GCEm/test-results.xml ./tests
       - run:
           name: Upload coverage report
           command: |
             bash <(curl -s https://codecov.io/bash) -t "${CODECOV_TOKEN}"
       - store_test_results:
-          path: ./GCEm
+          path: ./GCEm/test-results.xml
 
 workflows:
   main:
