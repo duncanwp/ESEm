@@ -1,91 +1,91 @@
-import unittest
 from GCEm import gp_model
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
+import pytest
 
 
-class GPModelTest(unittest.TestCase):
+def test_user_specified_kernel():
     """
-    Setup for the simple test case with user provided kernel
+    Setup for the simple 1D 2 parameter test case with user specified kernel
     """
+    params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
 
-    def test_user_specified_kernel(self):
-        """
-        Setup for the simple 1D 2 parameter test case with user specified kernel
-        """
-        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+    ensemble = get_1d_two_param_cube(params)
 
-        ensemble = get_1d_two_param_cube(params)
+    m = gp_model(params, ensemble, kernel=['Bias', "Polynomial", 'Linear', "RBF"])
+    m.train()
 
-        m = gp_model(params, ensemble, kernel=['Bias', "Polynomial", 'Linear', "RBF"])
-        m.train()
-
-        # self.assert_(m, m.model.kernel)
-
-    def test_user_specified_invalid_kernel(self):
-        """
-        Setup for the simple 1D 2 parameter test case with user specified kernel
-        """
-        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
-
-        ensemble = get_1d_two_param_cube(params)
-
-        with self.assertRaises(ValueError):
-            m = gp_model(params, ensemble, kernel=['Blah'])
-
-    def test_user_specified_single_kernel(self):
-        """
-        Setup for the simple 1D 2 parameter test case with user specified kernel
-        """
-        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
-
-        ensemble = get_1d_two_param_cube(params)
-
-        m = gp_model(params, ensemble, kernel=['RBF'])
-        m.train()
-
-        # self.assert_(m, m.model.kernel)
-
-    def test_user_specified_invalid_op(self):
-        """
-        Setup for the simple 1D 2 parameter test case with user specified kernel
-        """
-        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
-
-        ensemble = get_1d_two_param_cube(params)
-
-        with self.assertRaises(ValueError):
-            m = gp_model(params, ensemble, kernel=['RBF', 'White'], kernel_op='Blah')
-
-    def test_user_provided_kernel(self):
-        """
-        Setup for the simple 1D 2 parameter test case with user provided kernel
-        """
-        import gpflow
-
-        kernel = gpflow.kernels.RBF(lengthscales=[0.5] * 2, variance=0.01) + \
-                 gpflow.kernels.Linear(variance=[1.] * 2) + \
-                 gpflow.kernels.Polynomial(variance=[1.] * 2) + \
-                 gpflow.kernels.Bias()
-
-        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
-
-        ensemble = get_1d_two_param_cube(params)
-
-        m = gp_model(params, ensemble, kernel=kernel)
-        m.train()
-
-    def test_user_provided_invalid_kernel(self):
-        params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
-
-        ensemble = get_1d_two_param_cube(params)
-
-        with self.assertRaises(ValueError):
-            m = gp_model(params, ensemble, kernel=5)
+    # self.assert_(m, m.model.kernel)
 
 
-class GPTest(object):
+def test_user_specified_invalid_kernel():
+    """
+    Setup for the simple 1D 2 parameter test case with user specified kernel
+    """
+    params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+    ensemble = get_1d_two_param_cube(params)
+
+    with pytest.raises(ValueError):
+        m = gp_model(params, ensemble, kernel=['Blah'])
+
+
+def test_user_specified_single_kernel():
+    """
+    Setup for the simple 1D 2 parameter test case with user specified kernel
+    """
+    params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+    ensemble = get_1d_two_param_cube(params)
+
+    m = gp_model(params, ensemble, kernel=['RBF'])
+    m.train()
+
+    # self.assert_(m, m.model.kernel)
+
+
+def test_user_specified_invalid_op():
+    """
+    Setup for the simple 1D 2 parameter test case with user specified kernel
+    """
+    params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+    ensemble = get_1d_two_param_cube(params)
+
+    with pytest.raises(ValueError):
+        m = gp_model(params, ensemble, kernel=['RBF', 'White'], kernel_op='Blah')
+
+
+def test_user_provided_kernel():
+    """
+    Setup for the simple 1D 2 parameter test case with user provided kernel
+    """
+    import gpflow
+
+    kernel = gpflow.kernels.RBF(lengthscales=[0.5] * 2, variance=0.01) + \
+             gpflow.kernels.Linear(variance=[1.] * 2) + \
+             gpflow.kernels.Polynomial(variance=[1.] * 2) + \
+             gpflow.kernels.Bias()
+
+    params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+    ensemble = get_1d_two_param_cube(params)
+
+    m = gp_model(params, ensemble, kernel=kernel)
+    m.train()
+
+
+def test_user_provided_invalid_kernel():
+    params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
+
+    ensemble = get_1d_two_param_cube(params)
+
+    with pytest.raises(ValueError):
+        m = gp_model(params, ensemble, kernel=5)
+
+
+class GPTest:
     """
     Tests on the GPModel class and its methods. The actual model is setup
      independently in the concrete test classes below. This abstracts the
@@ -154,13 +154,13 @@ class GPTest(object):
         assert_allclose(std_dev.data, expected_ensemble.data.std(axis=0), rtol=0.5)
 
 
-class Simple1DTest(unittest.TestCase, GPTest):
+class TestSimple1D(GPTest):
     """
     Setup for the simple 1D 2 parameter test case
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
 
         params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
 
@@ -175,13 +175,13 @@ class Simple1DTest(unittest.TestCase, GPTest):
         cls.eval_fn = eval_1d_cube
 
 
-class Simple1DTestSpecifiedKernel(unittest.TestCase, GPTest):
+class TestSimple1DSpecifiedKernel(GPTest):
     """
     Setup for the simple 1D 2 parameter test case with user specified kernel
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
 
         params, test = pop_elements(get_uniform_params(2, 6), 10, 12)
 
@@ -196,13 +196,13 @@ class Simple1DTestSpecifiedKernel(unittest.TestCase, GPTest):
         cls.eval_fn = eval_1d_cube
 
 
-class Simple1DTestUserKernel(unittest.TestCase, GPTest):
+class TestSimple1DUserKernel(GPTest):
     """
     Setup for the simple 1D 2 parameter test case with user provided kernel
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
         import gpflow
 
         kernel = gpflow.kernels.RBF(lengthscales=[0.5] * 2, variance=0.01) + \
@@ -223,13 +223,13 @@ class Simple1DTestUserKernel(unittest.TestCase, GPTest):
         cls.eval_fn = eval_1d_cube
 
 
-class Simple2DTest(unittest.TestCase, GPTest):
+class TestSimple2D(GPTest):
     """
     Setup for the simple 2D 3 parameter test case.
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params)
@@ -242,13 +242,13 @@ class Simple2DTest(unittest.TestCase, GPTest):
         cls.eval_fn = eval_cube
 
 
-class Simple32bitTest(unittest.TestCase, GPTest):
+class TestSimple32bit(GPTest):
     """
     Setup for the simple 2D 3 parameter test case with 32bit data
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params)
@@ -261,7 +261,3 @@ class Simple32bitTest(unittest.TestCase, GPTest):
         cls.params = params
         cls.test_params = test
         cls.eval_fn = eval_cube
-
-
-if __name__ == '__main__':
-    unittest.main()

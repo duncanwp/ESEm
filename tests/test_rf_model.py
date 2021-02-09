@@ -1,11 +1,10 @@
-import unittest
 from GCEm import rf_model
 from GCEm.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
 
 
-class RFTest(object):
+class RFTest:
     """
     Tests on the RFModel class and its methods. The actual model is setup
      independently in the concrete test classes below. This abstracts the
@@ -58,13 +57,13 @@ class RFTest(object):
         assert pred_m.units == expected.units
 
 
-class Simple1DTest(unittest.TestCase, RFTest):
+class TestSimple1D(RFTest):
     """
     Setup for the simple 1D 2 parameter test case
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
         params, test = pop_elements(get_uniform_params(2), 10, 12)
         ensemble = get_1d_two_param_cube(params)
         m = rf_model(training_params=params,
@@ -78,13 +77,13 @@ class Simple1DTest(unittest.TestCase, RFTest):
         cls.eval_fn = eval_1d_cube
 
 
-class Simple2DTest(unittest.TestCase, RFTest):
+class TestSimple2D(RFTest):
     """
     Setup for the simple 2D 3 parameter test case.
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
         ensemble = get_three_param_cube(params)
         m = rf_model(training_params=params,
@@ -98,13 +97,13 @@ class Simple2DTest(unittest.TestCase, RFTest):
         cls.eval_fn = eval_cube
 
 
-class Simple32bitTest(unittest.TestCase, RFTest):
+class TestSimple32bit(RFTest):
     """
     Setup for the simple 2D 3 parameter test case with 32bit data
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setup_class(cls) -> None:
         params, test = pop_elements(get_uniform_params(3), 50)
 
         ensemble = get_three_param_cube(params)
@@ -119,7 +118,3 @@ class Simple32bitTest(unittest.TestCase, RFTest):
         cls.params = params
         cls.test_params = test
         cls.eval_fn = eval_cube
-
-
-if __name__ == '__main__':
-    unittest.main()

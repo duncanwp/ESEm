@@ -15,16 +15,17 @@ jobs:
       - run: conda config --set quiet true
       - run: conda install iris
       - run: pip install -r tests_requirements.txt
+      - run: mkdir -p test_results/all_tests
       - run:
           name: Run tests
           command: |
-            pytest -v --cov=./GCEm --junitxml=./GCEm/test-results.xml ./tests
+            pytest -v --cov=./GCEm --junitxml=./test_results/all_tests/results.xml -m "not slow" ./tests
       - run:
           name: Upload coverage report
           command: |
             bash <(curl -s https://codecov.io/bash) -t "${CODECOV_TOKEN}"
       - store_test_results:
-          path: ./GCEm/test-results.xml
+          path: ./test_results/all_tests
 
 workflows:
   main:

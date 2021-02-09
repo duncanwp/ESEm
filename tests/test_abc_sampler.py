@@ -1,14 +1,14 @@
-import unittest
 from GCEm import gp_model
 from GCEm.utils import get_uniform_params
 from GCEm.abc_sampler import ABCSampler, constrain, _calc_implausibility
 from tests.mock import *
 from numpy.testing import assert_allclose, assert_array_equal
+import pytest
 
 
-class ABCSamplerTest(unittest.TestCase):
+class TestABCSampler:
 
-    def setUp(self) -> None:
+    def setup_method(self):
         self.training_params = get_uniform_params(2)
         self.training_ensemble = get_1d_two_param_cube(self.training_params)
 
@@ -234,7 +234,7 @@ class ABCSamplerTest(unittest.TestCase):
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             sampler = ABCSampler(self.m, obs,
                                  obs_uncertainty=obs_uncertainty,
                                  abs_obs_uncertainty=obs_uncertainty)
@@ -246,7 +246,7 @@ class ABCSamplerTest(unittest.TestCase):
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             sampler = ABCSampler(self.m, obs,
                                  interann_uncertainty=obs_uncertainty,
                                  abs_interann_uncertainty=obs_uncertainty)
@@ -258,7 +258,7 @@ class ABCSamplerTest(unittest.TestCase):
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             sampler = ABCSampler(self.m, obs,
                                  repres_uncertainty=obs_uncertainty,
                                  abs_repres_uncertainty=obs_uncertainty)
@@ -270,7 +270,7 @@ class ABCSamplerTest(unittest.TestCase):
         # Perturbing the obs by one sd should lead to an implausibility of 1.
         obs = self.training_ensemble[10].copy() + obs_uncertainty
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             sampler = ABCSampler(self.m, obs,
                                  struct_uncertainty=obs_uncertainty,
                                  abs_struct_uncertainty=obs_uncertainty)
@@ -390,18 +390,18 @@ class ABCSamplerTest(unittest.TestCase):
         # Generate only valid samples
         valid_samples = sampler.sample(n_samples=100, tolerance=0., threshold=2.)
 
-        self.assert_(valid_samples.shape == (100, 2))
+        assert valid_samples.shape == (100, 2)
 
         # Constrain them all - they should all be valid
         are_valid = sampler.batch_constrain(valid_samples,
                                             tolerance=0., threshold=2.)
 
-        self.assert_(are_valid.all())
+        assert are_valid.all()
 
 
-class ABCSamplerTest2D(unittest.TestCase):
+class TestABCSampler2D:
 
-    def setUp(self) -> None:
+    def setup_method(self):
         self.training_params = get_uniform_params(3)
         self.training_ensemble = get_three_param_cube(self.training_params)
 
@@ -424,7 +424,7 @@ class ABCSamplerTest2D(unittest.TestCase):
         implausibility = sampler.get_implausibility(self.training_params)
 
         expected_shape = (len(self.training_params), ) + obs.shape
-        self.assert_(implausibility.shape == expected_shape)
+        assert implausibility.shape == expected_shape
 
     def test_implausibility_vector_uncertainty(self):
         # Test with a vector obs uncertainty
@@ -445,7 +445,7 @@ class ABCSamplerTest2D(unittest.TestCase):
         implausibility = sampler.get_implausibility(self.training_params)
 
         expected_shape = (len(self.training_params),) + obs.shape
-        self.assert_(implausibility.shape == expected_shape)
+        assert implausibility.shape == expected_shape
 
     def test_batch_constrain(self):
         # Test that batch constrain returns the correct boolean array for
@@ -468,7 +468,7 @@ class ABCSamplerTest2D(unittest.TestCase):
                                                 tolerance=0., threshold=2.)
 
         expected_shape = (len(self.training_params),)
-        self.assert_(valid_samples.shape == expected_shape)
+        assert valid_samples.shape == expected_shape
 
     def test_sample(self):
         # Test that batch constrain returns the correct boolean array for
@@ -487,4 +487,4 @@ class ABCSamplerTest2D(unittest.TestCase):
         # Generate only valid samples
         valid_samples = sampler.sample(n_samples=100, tolerance=0., threshold=2.)
 
-        self.assert_(valid_samples.shape == (100, 3))
+        assert valid_samples.shape == (100, 3)
