@@ -7,22 +7,29 @@ from GCEm.utils import tf_tqdm
 class ABCSampler(Sampler):
     """
     Sample from the posterior using Approximate Bayesian Computation (ABC).
-     This is a style of rejection sampling
+     This is a style of rejection sampling.
     """
 
     def sample(self, prior_x=None, n_samples=1, tolerance=0., threshold=3.):
         """
-        This is the call that does the actual inference.
+        Sample the emulator over `prior_x` and compare with the observations, returning `n_samples` of the posterior
+        distribution (those points for which the model is compatible with the observations).
 
-        It should call model.sample over the prior, compare with the objective, and then output a posterior
-        distribution
+        Parameters
+        ----------
+        prior_x: tensorflow_probability.distribution or None
+            The distribution to sample parameters from. By default it will uniformly sample the unit N-D hypercube
+        n_samples: int
+            The number of samples to draw
+        tolerance: float
+            The fraction of samples which are allowed to be over the threshold
+        threshold: float
+            The number of standard deviations a sample is allowed to be away from the obs
 
-        :param tensorflow_probability.distribution prior_x: The distribution to sample parameters from.
-         By default it will uniformly sample the unit N-D hypercube
-        :param int n_samples: The number of samples to draw
-        :param float tolerance: The fraction of samples which are allowed to be over the threshold
-        :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
-        :return:
+        Returns
+        -------
+        ndarray[n_samples]
+            Array of samples conforming to the specified tolerance and threshold
         """
         import tensorflow_probability as tfp
         tfd = tfp.distributions
@@ -38,10 +45,22 @@ class ABCSampler(Sampler):
 
     def get_implausibility(self, sample_points, batch_size=1):
         """
+        Calculate the implausibility of the provided sample points, optionally in batches.
 
-        :param sample_points:
-        :param int batch_size:
-        :return:
+        *Note* this calculates an array of shape (n_sample_points, n_obs) and so can easily exceed available memory
+        if not used carefully.
+
+        Parameters
+        ----------
+        sample_points: ndarray or DataFrame
+            The sample points to calculate the implausibility for
+        batch_size: int
+            The size of the batches in which to calculate the implausibility (useful for large samples)
+
+        Returns
+        -------
+        Cube
+            A cube of the impluasibility of each sample against each observation
         """
         import pandas as pd
         if isinstance(sample_points, pd.DataFrame):
@@ -60,12 +79,31 @@ class ABCSampler(Sampler):
 
     def batch_constrain(self, sample_points, tolerance=0., threshold=3.0, batch_size=1):
         """
+        Constrain the supplied sample points based on the tolerance threshold, optionally in bathes.
 
-        :param sample_points:
-        :param float tolerance: The fraction of samples which are allowed to be over the threshold
-        :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
-        :param int batch_size:
-        :return:
+        Return a boolean array indicating if each sample meets the implausibility criteria:
+
+            I < T
+
+        Return True (for a sample) if the number of implausibility measures greater
+         than the threshold is less than or equal to the tolerance
+
+
+        Parameters
+        ----------
+        sample_points: ndarray
+            An array of sample points which are to be emulated and compared with the observations
+        tolerance: float
+            The fraction of samples which are allowed to be over the threshold
+        threshold: float
+            The number of standard deviations a sample is allowed to be away from the obs
+        batch_size: int
+            The size of the batches in which to perform the constraining (useful for large samples)
+        Returns
+        -------
+        ndarray
+            A boolean array which is true where the (emulated) samples are compatible with the observations and
+            false otherwise
         """
         import pandas as pd
         if isinstance(sample_points, pd.DataFrame):
@@ -94,10 +132,19 @@ def constrain(implausibility, tolerance=0., threshold=3.0):
         Return True (for a sample) if the number of implausibility measures greater
          than the threshold is less than or equal to the tolerance
 
-    :param np.array implausibility: Distance of each sample from each observation (in S.Ds)
-    :param float tolerance: The fraction of samples which are allowed to be over the threshold
-    :param float threshold: The number of standard deviations a sample is allowed to be away from the obs
-    :return np.array: Boolean array of samples which meet the implausibility criteria
+    Parameters
+    ----------
+    implausibility: ndarray
+        Standardized cartesian distance of each sample from each observation
+    tolerance: float
+        The fraction of samples which are allowed to be over the threshold
+    threshold: float
+        The number of standard deviations a sample is allowed to be away from the obs
+
+    Returns
+    -------
+    tf.Tensor
+        Boolean array of samples which meet the implausibility criteria
     """
     total_obs = tf.cast(tf.reduce_prod(tf.shape(implausibility)[1:]), dtype=implausibility.dtype)
     # Calculate the absolute tolerance
@@ -122,13 +169,32 @@ def _tf_constrain(model, obs, sample_points, total_variance,
                   tolerance, threshold, batch_size, pbar):
     """
 
-    :param model:
-    :param Tensor obs:
-    :param Tensor sample_points:
-    :param Tensor total_variance: Total variance in observational comparison
-    :param int batch_size:
-    :return:
+    Parameters
+    ----------
+    model: Emulator
+        The model to evaluate at the `sample_points`
+    obs: tf.Tensor
+        The observational values to compare the emulated values with
+    sample_points: tf.Tensor
+        The sample points to evaluate
+    total_variance: tf.Tensor
+        Total variance in observational comparison
+    tolerance: float
+        The fraction of samples which are allowed to be over the threshold
+    threshold: float
+        The number of standard deviations a sample is allowed to be away from the obs
+    batch_size: int
+        The batchsize to batch the sample_points in to
+    pbar
+        A progress bar to update within the Tensorflow loop
+
+    Returns
+    -------
+    tf.Tensor
+        A boolean Tensor which is true where the (emulated) samples are compatible with the observations and
+        false otherwise
     """
+
     sample_T = tf.data.Dataset.from_tensor_slices(sample_points)
     dataset = sample_T.batch(batch_size)
 
