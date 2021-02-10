@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-def kernel_plot(kernels, kernel_op='add'):
+def kernel_plot(kernels, kernel_op=None):
     """ Function for plotting kernel decomposition """
     import gpflow
     from operator import add, mul
