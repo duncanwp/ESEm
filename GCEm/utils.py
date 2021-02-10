@@ -30,8 +30,9 @@ def kernel_plot(kernels, kernel_op='add'):
         'mul': mul
     }
 
-    if kernel_op not in operator_dict.keys():
-        raise ValueError("Invalid operator: {}. Use either 'add' or 'mul'.".format(kernel_op))
+    if kernel_op is not None:
+        if kernel_op not in operator_dict.keys():
+            raise ValueError("Invalid operator: {}. Use either 'add' or 'mul'.".format(kernel_op))
     
     for k in kernels:
         try:
@@ -45,25 +46,35 @@ def kernel_plot(kernels, kernel_op='add'):
     def plotkernelsample(k, ax, xmin=-3, xmax=3):
         xx = np.linspace(xmin, xmax, 100)[:, None]
         K = k(xx)
-        ax.plot(xx, np.random.multivariate_normal(np.zeros(100), K, 3).T)
+        ax.plot(xx, np.random.multivariate_normal(np.zeros(100), K, 5).T)
         ax.set_title(k.__class__.__name__)
 
     # Set up figure
-    if len(kernels)>=2:
-        ncols = 3
+    if kernel_op is not None:
+        if len(kernels)>=2:
+            ncols = 3
+        else:
+            ncols = int(len(kernels)+1)
     else:
-        ncols = int(len(kernels)+1)
-        
-    nrows = int(np.ceil(len(kernels)/3) + 1)
+        if len(kernels)>=3:
+            ncols = 3
+        else:
+            ncols = int(len(kernels))
+    
+    if kernel_op is not None:
+        nrows = int(np.ceil((len(kernels)+1)/3))
+    else:
+        nrows = int(np.ceil(len(kernels)/3))
     
     # Pad end of kernel list with 0 and 1
     # So it matches axes shape (nrows*ncols)
     kernel_save = kernels*1
-    kernels.extend([1] * (1))
+    if kernel_op is not None:
+        kernels.extend([1] * (1))
     kernels.extend([0] * (nrows*ncols - len(kernels)))
     
     # Plot
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(12, 6), dpi=100, sharex=True, sharey=True)
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6*nrows, 3*nrows), dpi=100, sharex=True, sharey=True)
     
     for k_idx, k in enumerate(kernels):
         if k==0:
@@ -79,7 +90,12 @@ def kernel_plot(kernels, kernel_op='add'):
             K_class = kernel_dict[k]
             plotkernelsample(K_class, axes.flatten()[k_idx])
     
-    for ax in axes.flatten()[0:len(kernel_save)+1]:
+    if kernel_op is not None:
+        extra = 1
+    else:
+        extra = 0
+        
+    for ax in axes.flatten()[0:len(kernel_save)+extra]:
         xmin, xmax = ax.get_xlim()
         ymin, ymax = ax.get_ylim()
         ax.hlines(0, xmin-0.1, xmax+0.1, 'k', '--', zorder=-10, lw=0.5)
@@ -87,7 +103,7 @@ def kernel_plot(kernels, kernel_op='add'):
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         
-    _ = axes[0, 0].set_ylim(-3, 3)
+    _ = axes.flatten()[0].set_ylim(-3, 3)
     fig.tight_layout()
     
     return fig, axes
