@@ -13,36 +13,16 @@ def kernel_plot(kernels, kernel_op=None):
     
     assert isinstance(kernels, list), "Input argument `kernels` must be a list of strings."
     assert np.all([type(_)==str for _ in kernels]), "Input argument `kernels` must be a list of strings."
-    
-    kernel_dict = {
-        "RBF": gpflow.kernels.RBF(),
-        "Linear": gpflow.kernels.Linear(),
-        "Polynomial": gpflow.kernels.Polynomial(),
-        "Bias": gpflow.kernels.Bias(),
-        "White": gpflow.kernels.White(),
-        "Cosine": gpflow.kernels.Cosine(),
-        "Exponential": gpflow.kernels.Exponential(),
-        "Matern12": gpflow.kernels.Matern12(),
-        "Matern32": gpflow.kernels.Matern32(),
-        "Matern52": gpflow.kernels.Matern52(),
-    }
-    
-    operator_dict = {
-        'add': add,
-        'mul': mul
-    }
 
+    # Initialize kernels for plotting
+    kernel_list = _get_gpflow_kernel(names=kernels, n_params=1, 
+                                     active_dims=None, operator='add', 
+                                     return_individual=True)[1]
+    
     if kernel_op is not None:
-        if kernel_op not in operator_dict.keys():
-            raise ValueError("Invalid operator: {}. Use either 'add' or 'mul'.".format(kernel_op))
-    
-    for k in kernels:
-        try:
-            K_Class = kernel_dict[k]
-        except KeyError:
-            raise ValueError("Invalid Kernel: {}. Please choose from one of: {}".format(k, kernel_dict.keys()))
-
-   
+        kernel_list.append(_get_gpflow_kernel(names=kernels, n_params=1, 
+                                              active_dims=None, operator=kernel_op, 
+                                              return_individual=True)[0])
 
     # Plotting function
     def plotkernelsample(k, ax, xmin=-3, xmax=3):
@@ -86,10 +66,9 @@ def kernel_plot(kernels, kernel_op=None):
             
         elif k==1:
             # Sum/Product axis
-            k_combined = reduce(operator_dict[kernel_op], (kernel_dict[_] for _ in kernel_save))
-            plotkernelsample(k_combined, axes.flatten()[k_idx])
+            plotkernelsample(kernel_list[-1], axes.flatten()[k_idx])
         else:
-            K_class = kernel_dict[k]
+            K_class = kernel_list[k_idx]
             plotkernelsample(K_class, axes.flatten()[k_idx])
     
     if kernel_op is not None:
