@@ -141,7 +141,7 @@ def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
         try:
             K_Class = kernel_dict[k]
         except KeyError:
-            raise ValueError("Invalid Kernel: {}. Please choose from one of: {}".format(k, kernel_dict))
+            raise ValueError("Invalid Kernel: {}. Please choose from one of: {}".format(k, kernel_dict.keys()))
 
         if issubclass(K_Class, gpflow.kernels.Static):  # This covers e.g. White
             return K_Class(active_dims=active_dims)

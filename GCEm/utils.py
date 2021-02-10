@@ -9,6 +9,8 @@ def kernel_plot(kernels, kernel_op=None):
     from functools import reduce
     import matplotlib.pyplot as plt
     
+    from GCEm.__init__ import _get_gpflow_kernel
+    
     assert isinstance(kernels, list), "Input argument `kernels` must be a list of strings."
     assert np.all([type(_)==str for _ in kernels]), "Input argument `kernels` must be a list of strings."
     
