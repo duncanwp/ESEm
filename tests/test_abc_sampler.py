@@ -304,7 +304,9 @@ class TestABCSampler:
 
         implausibility = np.asarray([[0., 0., 0., 0., 0.],
                                      [0., 1., 1., 1., 0.],
-                                     [0., 0., 1., 0., 0.]])
+                                     [0., 0., 1., np.NaN, 0.]])
+        # Note that the NaN should be ignored for the following calculations
+
         assert_array_equal(constrain(implausibility, tolerance=0., threshold=3.0),
                            np.asarray([True, True, True]))
         assert_array_equal(constrain(implausibility, tolerance=0., threshold=0.5),
@@ -322,7 +324,7 @@ class TestABCSampler:
 
         implausibility = np.asarray([[[0., 0., 0., 0., 0.],
                                      [0., 1., 1., 1., 0.],
-                                     [0., 0., 1., 0., 0.]],
+                                     [0., 0., 1., np.NaN, 0.]],
                                     [[0., 2., 0., 0., 0.],
                                      [0., 2., 1., 1., 0.],
                                      [0., 0., 1., 0., 0.]]]
