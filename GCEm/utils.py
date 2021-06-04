@@ -261,3 +261,33 @@ class tf_tqdm(object):
             return e
 
         return ds.map(advance_tqdm)
+
+
+def get_param_mask(X, y, criterion='bic', **kwargs):
+    """
+    Determine the most relevant parameters in the input space using a regularised linear model and either the
+    Aikake or Baysian Information Criterion.
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Parameter values
+    y : array-like of shape (n_samples,)
+        target values.
+    criterion: {'bic' , 'aic'}, default='bic'
+        The information criteria to apply for parameter selection. Either Aikake or Baysian Information Criterion.
+    kwargs: dict
+        Further arguments for sklearn.feature_selection.SelectFromModel
+
+    Returns
+    -------
+    mask : array
+        A boolean array of shape [# input features], in which an element is
+        True iff its corresponding feature is selected for retention.
+    """
+    from sklearn.linear_model import LassoLarsIC
+    from sklearn.feature_selection import SelectFromModel
+
+    lsvc = LassoLarsIC(criterion=criterion).fit(X, y)
+    model = SelectFromModel(lsvc, prefit=True, **kwargs)
+    return model.get_support()
