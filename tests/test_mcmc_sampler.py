@@ -94,6 +94,20 @@ def test_sample():
     assert valid_samples.shape == (10, 2)
 
 
+def test_nan_obs_are_ignored():
+    prior_x = tfd.Uniform(low=tf.zeros(2, dtype=tf.float64),
+                          high=tf.ones(2, dtype=tf.float64))
+
+    prior_x = tfd.Independent(prior_x, reinterpreted_batch_ndims=1, name='model')
+
+    # If an obs is NaN then the difference (distance) must be NaN too
+    likelihood = _target_log_likelihood(prior_x, 0.5, diff=np.asarray([[0.0, np.NaN]]),
+                                        total_sd=np.asarray([[1.0, 1.0]]))
+
+    # The likelihood should not be NaN though
+    assert not np.isnan(likelihood.numpy())
+
+
 @pytest.mark.slow
 def test_simple_sample():
     from iris.cube import Cube
@@ -103,7 +117,7 @@ def test_simple_sample():
     m = gp_model(X, z)
     m.train()
 
-    sampler = MCMCSampler(m, Cube(np.asarray([2.])),
+    sampler = MCMCSampler(m, Cube(np.asarray([2., np.NAN])),
                           obs_uncertainty=0.1,
                           interann_uncertainty=0.,
                           repres_uncertainty=0.,

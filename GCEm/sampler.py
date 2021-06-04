@@ -97,6 +97,8 @@ class MCMCSampler(Sampler):
     """
     Sample from the posterior using the TensorFlow Markov-Chain Monte-Carlo (MCMC)
      sampling tools. It uses a HamiltonianMonteCarlo kernel.
+
+    Note that NaN observations are ignored by the sampler as they create ill-defined likelihoods.
     """
 
     def sample(self, prior_x=None, n_samples=1, kernel_kwargs=None, mcmc_kwargs=None):
@@ -160,13 +162,26 @@ def _tf_sample(model, prior_x, obs, obs_var, n_samples, mcmc_kwargs, kernel_kwar
 
 @tf.function
 def _target_log_likelihood(prior_x, x, diff, total_sd):
-    # I think doing this inside the tf_function is slowing down the sampling, but I can't
+    # TODO: This works but is a lot of overhead inside a critical loop, I should consider just printing
+    #  a warning in the constructor if the obs contains NaNs...
+    # First filter any NaN diffs which will mess up the likelihood calculation
+    # (We assume there are no NaNs in the x's)
+    good_diffs = tf.logical_not(tf.math.is_nan(diff))
+    clean_diffs = tf.boolean_mask(diff, good_diffs)
+    # Also apply the mask to the SDs in case they are for each obs
+    # Ignore the annoying edge case with arrays of shape (1,) which get squezed to scalars
+    if good_diffs.shape != (1,):
+        good_diffs = tf.squeeze(good_diffs)
+        total_sd = tf.squeeze(total_sd)  # If the diff isn't shape (1) then the SD shouldn't be either
+    clean_sd = tf.boolean_mask(total_sd, good_diffs)
+
+    # I think creating the distributions inside the tf_function is slowing down the sampling, but I can't
     #  see any other way of incorporating the emulator uncertainty
     diff_dist = tfd.Independent(
-        tfd.Normal(loc=tf.zeros(diff.shape[0], dtype=tf.float64), scale=total_sd),
+        tfd.Normal(loc=tf.zeros(clean_diffs.shape[0], dtype=tf.float64), scale=clean_sd),
         reinterpreted_batch_ndims=1, name='model')
 
-    return prior_x.log_prob(x) + diff_dist.log_prob(diff)
+    return prior_x.log_prob(x) + diff_dist.log_prob(clean_diffs)
 
 
 @tf.function
