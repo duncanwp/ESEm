@@ -8,6 +8,8 @@ class ABCSampler(Sampler):
     """
     Sample from the posterior using Approximate Bayesian Computation (ABC).
      This is a style of rejection sampling.
+
+    Note that emulator samples compared to NaN observations are always treated as 'plausible'.
     """
 
     def sample(self, prior_x=None, n_samples=1, tolerance=0., threshold=3.):
@@ -152,6 +154,8 @@ def constrain(implausibility, tolerance=0., threshold=3.0):
     threshold = tf.constant(threshold, dtype=implausibility.dtype)
 
     # Count the number of implausible observations against the threshold
+    #  Note that the tf.greater comparison will return False for any NaN implausibilities,
+    #  hence NaN observations are always plausible.
     n_implausible = tf.reduce_sum(tf.cast(tf.greater(implausibility, threshold), dtype=implausibility.dtype),
                                   # Reduce over all dims except the first
                                   axis=(range(1, len(implausibility.shape))))
