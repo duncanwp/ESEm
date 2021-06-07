@@ -117,7 +117,7 @@ def test_simple_sample():
     m = gp_model(X, z)
     m.train()
 
-    sampler = MCMCSampler(m, Cube(np.asarray([2., np.NAN])),
+    sampler = MCMCSampler(m, Cube(np.asarray([2., np.NaN])),
                           obs_uncertainty=0.1,
                           interann_uncertainty=0.,
                           repres_uncertainty=0.,

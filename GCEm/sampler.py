@@ -169,10 +169,10 @@ def _target_log_likelihood(prior_x, x, diff, total_sd):
     good_diffs = tf.logical_not(tf.math.is_nan(diff))
     clean_diffs = tf.boolean_mask(diff, good_diffs)
     # Also apply the mask to the SDs in case they are for each obs
-    # Ignore the annoying edge case with arrays of shape (1,) which get squezed to scalars
+    # Ignore the annoying edge case with arrays of shape (1,) which get squeezed to scalars
     if good_diffs.shape != (1,):
         good_diffs = tf.squeeze(good_diffs)
-        total_sd = tf.squeeze(total_sd)  # If the diff isn't shape (1) then the SD shouldn't be either
+        total_sd = tf.squeeze(total_sd)  # If the diff isn't shape (1,) then the SD shouldn't be either
     clean_sd = tf.boolean_mask(total_sd, good_diffs)
 
     # I think creating the distributions inside the tf_function is slowing down the sampling, but I can't
