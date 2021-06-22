@@ -94,6 +94,7 @@ def test_sample():
     assert valid_samples.shape == (10, 2)
 
 
+@pytest.mark.skip  # This doesn't work now - we just print a loud warning instead.
 def test_nan_obs_are_ignored():
     prior_x = tfd.Uniform(low=tf.zeros(2, dtype=tf.float64),
                           high=tf.ones(2, dtype=tf.float64))
@@ -117,7 +118,7 @@ def test_simple_sample():
     m = gp_model(X, z)
     m.train()
 
-    sampler = MCMCSampler(m, Cube(np.asarray([2., np.NaN])),
+    sampler = MCMCSampler(m, Cube(np.asarray([2.])),
                           obs_uncertainty=0.1,
                           interann_uncertainty=0.,
                           repres_uncertainty=0.,
