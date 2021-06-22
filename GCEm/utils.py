@@ -188,7 +188,7 @@ def ensemble_collocate(ensemble, observations, member_dimension='job'):
     return col_ensemble
 
 
-def LeaveOneOut(Xdata, Ydata, model='RandomForest', **model_kwargs):
+def leave_one_out(Xdata, Ydata, model='RandomForest', **model_kwargs):
     """
     Function to perform LeaveOneOut cross-validation with different models. 
     """
@@ -202,38 +202,33 @@ def LeaveOneOut(Xdata, Ydata, model='RandomForest', **model_kwargs):
     
     if model not in models.keys():
         raise Exception(f"Model needs to be one of {list(models.keys())}, found '{model}'.")
-    
-    # fix random seed for reproducibility 
-    # then shuffle X,Y indices so that they're not ordered (in time, for example)
-    np.random.seed(0)
-    rndperm = np.random.permutation(Xdata.shape[0])
-    
-    # How many indices?
-    n_data = Xdata.shape[0]
-    
-    # Output array for test value and prediction
-    output = np.vstack([np.empty(2) for _ in range(n_data)])
-    
-    for test_idx in range(n_data):
-        """Split into training - validation sets"""
-        X_train = Xdata.iloc[rndperm[np.arange(len(rndperm))!= test_idx], :]
-        X_test  = Xdata.iloc[rndperm[test_idx], :].to_numpy().reshape(1,-1)
+
+    # Ensure the x data is an array
+    Xdata = np.asarray(Xdata)
+
+    # Output list for test value and prediction outputs
+    output = []
+
+    indices = np.arange(Xdata.shape[0])
+    for test_idx in indices:
+        # Split into training - validation sets
+        X_train = Xdata[indices != test_idx, :]
+        X_test = Xdata[test_idx:test_idx+1, :]
         
-        Y_train = Ydata[rndperm[np.arange(len(rndperm))!= test_idx]]
-        Y_test  = Ydata[rndperm[test_idx]]
-       
-        """Construct and fit model"""
+        Y_train = Ydata[indices != test_idx]
+        Y_test = Ydata[test_idx]
+
+        # Construct and fit model
         model_ = models[model](training_params=X_train, 
                                training_data=Y_train, 
                                **model_kwargs)
-        
         model_.train()
 
-        """Evaluate model on test data"""
-        predictions,v = model_.predict(X_test)
+        # Evaluate model on test data
+        predictions, v = model_.predict(X_test)
 
-        """Save output for validation plot later on"""
-        output[test_idx] = (Y_test, predictions)
+        # Save output for validation plot later on
+        output.append((Y_test, predictions, v))
 
     return output
 
