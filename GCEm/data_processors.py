@@ -43,19 +43,14 @@ class Normalise(DataProcessor):
 
 class Log(DataProcessor):
 
-    def __init__(self, plus_one=False):
-        self.plus_one = plus_one
+    def __init__(self, constant=0.):
+        self.constant = constant
 
     def process(self, data):
-        if self.plus_one:
-            return np.log(data + 1.)
-        else:
-            return np.log(data)
+        return np.log(data + self.constant)
 
     def unprocess(self, mean, variance):
-        mean_res = tf.exp(mean)
-        if self.plus_one:
-            mean_res = mean_res - tf.constant(1., dtype=mean.dtype)
+        mean_res = tf.exp(mean) - tf.constant(self.constant, dtype=mean.dtype)
         return mean_res, tf.exp(mean) * variance
 
 

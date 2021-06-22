@@ -59,7 +59,7 @@ class TestLogP1(DataProcessorTest):
     @classmethod
     def setup_class(cls) -> None:
         cls.test_data = np.arange(1, 101, dtype=float).reshape((10, 10))
-        cls.processor = Log(plus_one=True)
+        cls.processor = Log(constant=1.0)
 
 
 class TestFlatten(DataProcessorTest):
