@@ -151,7 +151,6 @@ def constrain(implausibility, tolerance=0., threshold=3.0):
     total_obs = tf.cast(tf.reduce_prod(tf.shape(implausibility)[1:]), dtype=implausibility.dtype)
     # Calculate the absolute tolerance
     abs_tolerance = tf.multiply(tf.constant(tolerance, dtype=implausibility.dtype), total_obs)
-    threshold = tf.constant(threshold, dtype=implausibility.dtype)
 
     # Count the number of implausible observations against the threshold
     #  Note that the tf.greater comparison will return False for any NaN implausibilities,
