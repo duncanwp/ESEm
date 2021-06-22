@@ -47,14 +47,19 @@ def plot_results(ax, truth, pred, title):
     ax.set_ylabel('Prediction')
 
 
-def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, miny=None, maxx=None, maxy=None):
+def prediction_within_ci(test_mean, pred_mean, pred_var, ci=0.95):
     from scipy import stats
+    lower, upper = stats.norm.interval(ci, loc=pred_mean, scale=np.sqrt(pred_var))
+    within = (upper > test_mean) & (lower < test_mean)
+    return lower, upper, within
+
+
+def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, miny=None, maxx=None, maxy=None):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, figsize=figsize)
-    lower, upper = stats.norm.interval(0.95, loc=pred_mean, scale=np.sqrt(pred_var))
-    bad = (upper < test_mean) | (lower > test_mean)
-    print("Proportion of 'Bad' estimates : {:.2f}%".format((bad.sum()/(~bad).sum())*100.))
-    col = ['r' if b else "k" for b in bad]
+    lower, upper, within_95_ci = prediction_within_ci(test_mean, pred_mean, pred_var)
+    print("Proportion of 'Bad' estimates : {:.2f}%".format(((~within_95_ci).sum()/test_mean.count())*100.))
+    col = ['r' if b else "k" for b in ~within_95_ci.compressed()]
 
     # There's no way to set individual colors for errorbar points...
     #     Pull out the lines and set those, but do the points separately
