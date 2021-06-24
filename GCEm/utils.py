@@ -58,8 +58,17 @@ def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, m
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, figsize=figsize)
     lower, upper, within_95_ci = prediction_within_ci(test_mean, pred_mean, pred_var)
-    print("Proportion of 'Bad' estimates : {:.2f}%".format(((~within_95_ci).sum()/test_mean.count())*100.))
-    col = ['r' if b else "k" for b in ~within_95_ci.compressed()]
+
+    # Deal with input arrays that might be masked
+    if isinstance(test_mean, np.ma.MaskedArray):
+        valid_points = test_mean.count()
+        within_95_ci = within_95_ci.compressed()
+    else:
+        valid_points = test_mean.shape[0]
+
+    print("Proportion of 'Bad' estimates : {:.2f}%".format(((~within_95_ci).sum()/valid_points)*100.))
+
+    col = ['r' if b else "k" for b in ~within_95_ci]
 
     # There's no way to set individual colors for errorbar points...
     #     Pull out the lines and set those, but do the points separately
