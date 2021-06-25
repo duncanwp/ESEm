@@ -49,6 +49,7 @@ def get_bc_ppe_data(cache_path='.', dre=False, normalize_params=True):
     :return:
     """
     import pandas as pd
+    import numpy as np
     import cis
 
     bc_ppe_cache = os.path.join(cache_path, 'BC_PPE_PD_AAOD_monthly.nc')
@@ -66,6 +67,8 @@ def get_bc_ppe_data(cache_path='.', dre=False, normalize_params=True):
     ppe_aaod.transpose((1, 0, 2, 3))
     
     if normalize_params:
+        # These scaling parameters are log-uniformly distributed
+        ppe_params[['BCnumber', 'Wetdep']] = np.log(ppe_params[['BCnumber', 'Wetdep']])
         ppe_params = ppe_params.apply(normalize, axis=0)
     
     if dre:
