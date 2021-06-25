@@ -98,6 +98,8 @@ class MCMCSampler(Sampler):
     Sample from the posterior using the TensorFlow Markov-Chain Monte-Carlo (MCMC)
      sampling tools. It uses a HamiltonianMonteCarlo kernel.
 
+    Notes
+    -----
     Note that NaN observations will create ill-defined likelihoods.
     """
 

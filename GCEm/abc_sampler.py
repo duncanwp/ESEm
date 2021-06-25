@@ -9,6 +9,8 @@ class ABCSampler(Sampler):
     Sample from the posterior using Approximate Bayesian Computation (ABC).
      This is a style of rejection sampling.
 
+    Notes
+    -----
     Note that emulator samples compared to NaN observations are always treated as 'plausible'.
     """
 
