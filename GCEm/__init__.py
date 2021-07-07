@@ -89,7 +89,7 @@ def gp_model(training_params, training_data, data_processors=None,
     return Emulator(model, training_params, data, name=name, gpu=gpu)
 
 
-def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
+def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add', return_individual=False):
     """
         Helper function for creating a single GPFlow kernel from a combination of kernel names.
 
@@ -103,6 +103,8 @@ def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
         The active dimensions to allow the kernel to fit
     operator: {'add', 'mul'}
         The operator to use to combine the kernels
+    return_individual: bool
+        Whether to return a list of the individually initialized kernels
 
     Returns
     -------
@@ -141,7 +143,7 @@ def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
         try:
             K_Class = kernel_dict[k]
         except KeyError:
-            raise ValueError("Invalid Kernel: {}. Please choose from one of: {}".format(k, kernel_dict))
+            raise ValueError("Invalid Kernel: {}. Please choose from one of: {}".format(k, kernel_dict.keys()))
 
         if issubclass(K_Class, gpflow.kernels.Static):  # This covers e.g. White
             return K_Class(active_dims=active_dims)
@@ -154,7 +156,10 @@ def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
         else:
             raise ValueError("Unexpected Kernel type: {}".format(K_Class))  # This shouldn't happen...
 
-    return reduce(operator_dict[operator], (init_kernel(k) for k in names))
+    if return_individual:
+        return reduce(operator_dict[operator], (init_kernel(k) for k in names)), [init_kernel(k) for k in names]
+    else:
+        return reduce(operator_dict[operator], (init_kernel(k) for k in names))
 
 
 def cnn_model(training_params, training_data, data_processors=None,
