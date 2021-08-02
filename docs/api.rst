@@ -1,4 +1,4 @@
-.. currentmodule:: GCEm
+.. currentmodule:: esem
 
 #############
 API reference
@@ -33,7 +33,7 @@ Emulator
 Sampler
 =======
 
-.. currentmodule:: GCEm.sampler
+.. currentmodule:: esem.sampler
 .. autosummary::
    :toctree: generated/
 
@@ -43,7 +43,7 @@ Sampler
 ABCSampler
 ----------
 
-.. currentmodule:: GCEm.abc_sampler
+.. currentmodule:: esem.abc_sampler
 .. autosummary::
    :toctree: generated/
 
@@ -53,7 +53,7 @@ ABCSampler
 CubeWrapper
 ===========
 
-.. currentmodule:: GCEm.cube_wrapper
+.. currentmodule:: esem.cube_wrapper
 .. autosummary::
    :toctree: generated/
 
@@ -66,7 +66,7 @@ CubeWrapper
 ModelAdaptor
 ============
 
-.. currentmodule:: GCEm.model_adaptor
+.. currentmodule:: esem.model_adaptor
 .. autosummary::
    :toctree: generated/
 
@@ -76,7 +76,7 @@ ModelAdaptor
 DataProcessor
 =============
 
-.. currentmodule:: GCEm.data_processors
+.. currentmodule:: esem.data_processors
 .. autosummary::
    :toctree: generated/
 
@@ -91,7 +91,7 @@ DataProcessor
 Utilities
 =========
 
-.. currentmodule:: GCEm.utils
+.. currentmodule:: esem.utils
 .. autosummary::
    :toctree: generated/
 
