@@ -3,7 +3,7 @@ A package for easily emulating earth systems data
 
 .. note ::
 
-    The GCEm documentation has detailed usage information, including a :doc:`user guide <../index>`
+    The esem documentation has detailed usage information, including a :doc:`user guide <../index>`
     for new users.
 
 """
@@ -13,7 +13,7 @@ from .emulator import Emulator
 import pkg_resources
 
 try:
-    __version__ = pkg_resources.get_distribution("GCEm").version
+    __version__ = pkg_resources.get_distribution("esem").version
 except Exception:
     # Local copy or not installed with setuptools.
     # Disable minimum version checks on downstream libraries.
@@ -55,7 +55,7 @@ def gp_model(training_params, training_data, data_processors=None,
     Returns
     -------
     Emulator
-        A GCEm emulator object which can be trained and sampled from
+        A esem emulator object which can be trained and sampled from
 
     """
 
@@ -196,7 +196,7 @@ def cnn_model(training_params, training_data, data_processors=None,
     Returns
     -------
     Emulator
-        A GCEm emulator object which can be trained and sampled from
+        A esem emulator object which can be trained and sampled from
 
 
     Notes
@@ -277,7 +277,7 @@ def rf_model(training_params, training_data, data_processors=None, name='', gpu=
     Returns
     -------
     Emulator
-        A GCEm emulator object which can be trained and sampled from
+        A esem emulator object which can be trained and sampled from
 
     """
     from .model_adaptor import SKLearnModel

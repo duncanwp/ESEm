@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.testing import assert_array_equal
-from GCEm.utils import get_uniform_params, get_param_mask
+from esem.utils import get_uniform_params, get_param_mask
 from tests.mock import simple_polynomial_fn_two_param, get_1d_two_param_cube
 import pytest
 
@@ -30,7 +30,7 @@ def test_get_param_mask():
     ],
 )
 def test_leave_one_out(model, model_kwargs):
-    from GCEm.utils import leave_one_out
+    from esem.utils import leave_one_out
 
     params = get_uniform_params(2, 4)
     ensemble = get_1d_two_param_cube(params)

@@ -1,5 +1,5 @@
-from GCEm import cnn_model
-from GCEm.utils import get_uniform_params
+from esem import cnn_model
+from esem.utils import get_uniform_params
 from tests.mock import *
 from numpy.testing import assert_allclose
 import pytest
@@ -142,7 +142,7 @@ class TestNN:
 
     def test_batch_stats(self):
         from iris.cube import CubeList
-        from GCEm.utils import get_random_params
+        from esem.utils import get_random_params
         # Test that the sample_mean function returns the mean of the sample
 
         sample_params = get_random_params(self.params.shape[1], 1000)

@@ -1,9 +1,9 @@
-.. GCEm documentation master file, created by
+.. ESEm documentation master file, created by
    sphinx-quickstart on Mon Feb  8 11:46:20 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to GCEm's documentation!
+Welcome to ESEm's documentation!
 ================================
 
 .. toctree::

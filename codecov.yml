@@ -1,2 +1,2 @@
 ignore:
-  - "GCEm/utils.py"       # Ignore (mostly plotting) utils 
+  - "esem/utils.py"       # Ignore (mostly plotting) utils

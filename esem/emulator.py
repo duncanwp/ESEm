@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
-from GCEm.cube_wrapper import CubeWrapper
-from GCEm.model_adaptor import ModelAdaptor
+from esem.cube_wrapper import CubeWrapper
+from esem.model_adaptor import ModelAdaptor
 
 
 class Emulator:
@@ -104,7 +104,7 @@ class Emulator:
         :param int batch_size:
         :return:
         """
-        from GCEm.utils import tf_tqdm
+        from esem.utils import tf_tqdm
         with self.tf_device_context:
             # TODO: Make sample points optional and just sample from a uniform distribution if not provided
             mean, sd = _tf_stats(self, tf.constant(sample_points),

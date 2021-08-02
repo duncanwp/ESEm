@@ -1,6 +1,6 @@
-from GCEm import gp_model
-from GCEm.utils import get_uniform_params
-from GCEm.abc_sampler import ABCSampler, constrain, _calc_implausibility
+from esem import gp_model
+from esem.utils import get_uniform_params
+from esem.abc_sampler import ABCSampler, constrain, _calc_implausibility
 from tests.mock import *
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest

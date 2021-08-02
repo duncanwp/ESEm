@@ -1,6 +1,6 @@
 
 ===================
-Emulating with GCEm
+Emulating with ESEm
 ===================
 
 
@@ -19,8 +19,8 @@ For example,
 
 .. code-block:: python
 
-    from GCEM import gp_model
-    from GCEM.utils import get_param_mask
+    from esem import gp_model
+    from esem.utils import get_param_mask
 
     # X and Y are our model parameters and outputs respectively.
     active_params = get_param_mask(X, y)

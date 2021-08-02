@@ -145,7 +145,7 @@ def eval_cube(params, **kwargs):
 
 
 def get_mock_model(eval_X=None):
-    from GCEm.model_adaptor import ModelAdaptor
+    from esem.model_adaptor import ModelAdaptor
     eval_X = eval_X or (np.arange(10), np.arange(10))
     predict_mean = np.repeat(simple_polynomial_fn_two_param(*eval_X)[:, np.newaxis], 100, 1)
     predict_var = np.ones_like(predict_mean)

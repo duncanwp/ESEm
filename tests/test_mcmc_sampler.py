@@ -1,6 +1,6 @@
-from GCEm import gp_model
-from GCEm.utils import get_uniform_params
-from GCEm.sampler import MCMCSampler, _target_log_likelihood
+from esem import gp_model
+from esem.utils import get_uniform_params
+from esem.sampler import MCMCSampler, _target_log_likelihood
 from tests.mock import *
 import pytest
 from numpy.testing import assert_allclose

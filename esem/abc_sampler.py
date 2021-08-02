@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from GCEm.sampler import Sampler
-from GCEm.utils import tf_tqdm
+from esem.sampler import Sampler
+from esem.utils import tf_tqdm
 
 
 class ABCSampler(Sampler):

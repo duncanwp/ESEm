@@ -206,9 +206,9 @@ def leave_one_out(Xdata, Ydata, model='RandomForest', **model_kwargs):
     """
     Function to perform LeaveOneOut cross-validation with different models. 
     """
-    from GCEm import rf_model
-    from GCEm import gp_model
-    from GCEm import cnn_model
+    from esem import rf_model
+    from esem import gp_model
+    from esem import cnn_model
     
     models = {'RandomForest': rf_model,
               'GaussianProcess': gp_model,

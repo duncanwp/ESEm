@@ -1,6 +1,6 @@
-from GCEm.emulator import Emulator
-from GCEm.utils import get_uniform_params
-from GCEm.cube_wrapper import CubeWrapper
+from esem.emulator import Emulator
+from esem.utils import get_uniform_params
+from esem.cube_wrapper import CubeWrapper
 from tests.mock import get_mock_model, get_1d_two_param_cube
 from numpy.testing import assert_array_equal
 from contextlib import nullcontext

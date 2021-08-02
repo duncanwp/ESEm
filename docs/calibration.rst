@@ -1,6 +1,6 @@
 
 =====================
-Calibrating with GCEm
+Calibrating with ESEm
 =====================
 
 Using approximate Bayesian computation (ABC)

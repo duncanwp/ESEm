@@ -1,6 +1,6 @@
 
 ===============
-Installing GCEm
+Installing esem
 ===============
 
 Once conda is installed, you can easily install CIS with the following command::
@@ -9,13 +9,13 @@ Once conda is installed, you can easily install CIS with the following command::
 
 If you don't already have conda, you must first download and install it. Anaconda is a free conda package that includes Python and many common scientific and data analysis libraries, and is available `here <http://continuum.io/downloads>`_. Further documentation on using Anaconda and the features it provides can be found at http://docs.continuum.io/anaconda/index.html.
 
-In our experience the pip install of tensorflow has better hardware support than on conda. Installing GCEm this way will automatically include tensorflow (with GPU support)::
+In our experience the pip install of tensorflow has better hardware support than on conda. Installing esem this way will automatically include tensorflow (with GPU support)::
 
-    $ pip install GCEm
+    $ pip install esem
 
 Optionally also install GPFlow, keras or scikit-learn ::
 
-    $ pip install GCEm[gpflow]
+    $ pip install esem[gpflow]
 
 Dependencies
 ============

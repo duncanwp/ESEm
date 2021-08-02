@@ -1,7 +1,7 @@
 from numpy.testing import assert_array_equal
-from GCEm.utils import get_uniform_params
+from esem.utils import get_uniform_params
 from tests.mock import get_1d_two_param_cube
-from GCEm.cube_wrapper import CubeWrapper
+from esem.cube_wrapper import CubeWrapper
 
 
 def test_wrap_cube():

@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'GCEm'
+project = 'esem'
 copyright = '2021, D Watson-Parris'
 author = 'D Watson-Parris'
 

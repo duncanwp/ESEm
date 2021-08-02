@@ -1,4 +1,4 @@
-from GCEm.data_processors import *
+from esem.data_processors import *
 from tests.mock import *
 from numpy.testing import assert_allclose, assert_array_equal
 

@@ -17,7 +17,7 @@ class Sampler(ABC):
                  abs_repres_uncertainty=0., abs_struct_uncertainty=0.,
                  ):
         """
-        :param GCEm.model.Model model:
+        :param esem.model.Model model:
         :param iris.cube.Cube like object obs: The objective
         :param float obs_uncertainty: Fractional, relative (1 sigma) uncertainty in observations
         :param float repres_uncertainty: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal

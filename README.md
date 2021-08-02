@@ -1,10 +1,10 @@
-GCEm
+ESEm
 ====
 
 [![CircleCI](https://circleci.com/gh/duncanwp/GCEm.svg?style=svg)](https://circleci.com/gh/duncanwp/GCEm)
 [![codecov](https://codecov.io/gh/duncanwp/GCEm/branch/master/graph/badge.svg?token=4QI2G22Q3M)](https://codecov.io/gh/duncanwp/GCEm)
 
-A tool for emulating geophysical models including (but not limited to!) General Circulation Models.
+A tool for emulating geophysical models including (but not limited to!) Earth System Models.
 
 This project is still a work in progress and documentation will be coming shortly, in the meantime some example notebooks which demonstrate the basic usage can be found [here](docs/examples).
 
