@@ -1,2 +1,2 @@
 ipykernel
-nbsphinx
+git+https://github.com/spatialaudio/nbsphinx.git@master
