@@ -1,0 +1,8 @@
+name: esem
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.8
+  - iris
+  - pip>=20.1  # pip is needed as dependency
