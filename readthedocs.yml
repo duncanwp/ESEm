@@ -3,7 +3,7 @@ version: 2
 formats: all
 
 conda:
-    environment: conda-requirements.txt
+    environment: conda-requirements.yml
 
 sphinx:
     configuration: docs/src/conf.py
