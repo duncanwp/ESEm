@@ -79,7 +79,13 @@ These features are of particular importance for problems involving the parameter
 Data processing
 ===============
 
+Many of the above approaches make assumptions, or simply perform better, when the training data is structured or distributed in a certain way.
+These transformations are purely to help the emulator fit the training data, and can complicate comparison with e.g. observations during calibration.
+ESEm provides a simple and transparent way of transforming the datasets for training, and this automatically un-transforms the model predictions to aid in observational comparison.
 
+Where these transformations are strictly necessary for a given model then it will be included in the wrapper function. Other choices are left to the user to apply as required.
+
+A full list of the data processors can be found in the API documentation: `api`_
 
 Feature selection
 =================
