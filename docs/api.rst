@@ -30,15 +30,15 @@ Emulator
    Emulator.predict
    Emulator.batch_stats
 
-Sampler
-=======
+MCMCSampler
+===========
 
 .. currentmodule:: esem.sampler
 .. autosummary::
    :toctree: generated/
 
-   Sampler
-   Sampler.sample
+   MCMCSampler
+   MCMCSampler.sample
 
 ABCSampler
 ----------
@@ -47,6 +47,8 @@ ABCSampler
 .. autosummary::
    :toctree: generated/
 
+   ABCSampler
+   ABCSampler.sample
    ABCSampler.get_implausibility
    ABCSampler.batch_constrain
 
@@ -101,4 +103,5 @@ Utilities
    get_uniform_params
    get_random_params
    ensemble_collocate
-   LeaveOneOut
+   leave_one_out
+   get_param_mask

@@ -9,4 +9,5 @@ Examples
     examples/CRM_Emulation_with_RandomForest
     examples/Calibrating_GPs_using_ABC
     examples/Calibrating_GPs_using_MCMC
+    examples/CMIP6_emulator
 
