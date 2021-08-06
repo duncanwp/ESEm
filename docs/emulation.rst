@@ -40,41 +40,36 @@ E.g. :math:`Y` can be of arbitrary dimensionality. It will be automatically flat
 
     from esem import gp_model
 
-
+Examples of emulation using Gaussian processes can be found in `Emulating_using_GPs.ipynb <examples/Emulating_using_GPs.html>`_ and `CMIP6_emulator.ipynb <examples/CMIP6_emulator.html>`_.
 
 Neural network emulation
 ========================
 
-Through the development of automatic differentiation and batch-gradient descent it has become possible to efficiently train very large (millions of parameters), deep (dozens of layers) neural networks, using large amounts (terabytes) of training data.
-The price of this scalability is the risk of overfitting, and the lack of any information about the uncertainty of the outputs.
-However, both of these shortcomings can be addressed using a technique known as ‘dropout’ whereby individual weights are randomly set to zero and effectively ‘dropped’ from the network.
-During training this has the effect of forcing the network to learn redundant representations and reduce the risk of overfitting (Srivastava et al., 2014).
-More recently it was shown that applying the same technique during inference casts the NN as approximating Bayesian inference in deep Gaussian processes and can provide a well calibrated uncertainty estimate on the outputs (Gal and Ghahramani, 2015).
-The convolutional layers within these networks also take into account spatial correlations which cannot currently be directly modelled by GPs (although dimension reduction in the input can have the same effect).
-The main drawback with a CNN based emulator is that they typically need a much larger amount of training data than GP based emulators.
-
-While fully connected neural networks have been used for many years, even in climate science (Knutti et al., 2006; Krasnopolsky et al., 2005), the recent surge in popularity has been powered by the increases in expressibility provided by deep, convolutional neural networks (CNNs) and the regularisation techniques which prevent these huge models from over-fitting the large amounts of training data required to train them.
+While fully connected neural networks have been used for many years, even in climate science, the recent surge in popularity has been powered by the increases in expressibility provided by deep, convolutional neural networks (CNNs) and the regularisation techniques which prevent these huge models from over-fitting the large amounts of training data required to train them.
 Many excellent introductions can be found elsewhere but, briefly, a neural network consists of a network of nodes connecting (through a variety of architectures) the inputs to the target outputs via a series of weighted activation functions.
 The network architecture and activation functions are typically chosen a-priori and then the model weights are determined through a combination of back-propagation and (batch) gradient descent until the outputs match (defined by a given loss function) the provided training data. As previously discussed, the random dropping of nodes (by setting the weights to zero), termed dropout, can provide estimates of the prediction uncertainty of such networks.
-The computational efficiency of such networks and the rich variety of architectures available have made them the tool of choice in many machine learning settings, and they are starting to be used in climate sciences for emulation (Dagon et al., 2020), although the large amounts of training data required have so far limited their use somewhat.
+The computational efficiency of such networks and the rich variety of architectures available have made them the tool of choice in many machine learning settings, and they are starting to be used in climate sciences for emulation, although the large amounts of training data required (especially compared to GPs) have so far limited their use somewhat.
+
+ESEm provides a baseline CNN architecture based on the `Keras <https://keras.io/>`_ library which essentially acts as a decoder - transforming input parameters into predicted 2(or 3) dimensional output fields:
 
 .. image:: images/CNN_diagram.png
   :width: 400
   :alt: Schematic illustration of the structure of the default convolutional neural network model.
 
+It is possible to use any Keras model in this way though and there are many potential ways of improving / developing this simple model.
+
+An example of emulation using this convolution neural network can be found in `Emulating_using_ConvNets.ipynb <examples/Emulating_using_ConvNets.html>`_.
 
 Random forest emulation
 =======================
 
 ESEm also provides the option for emulation with Random Forests using the open-source implementation provided by scikit-learn.
-Random Forest estimators are comprised of an ensemble of decision trees; each decision tree is a recursive binary partition over the training data and the predictions are an average over the predictions of the decision trees (Breiman, 2001).
+Random Forest estimators are comprised of an ensemble of decision trees; each decision tree is a recursive binary partition over the training data and the predictions are an average over the predictions of the decision trees.
 As a result of this architecture, Random Forests (along with other algorithms built on decision trees) have two main attractions.
 Firstly, they require very little pre-processing of the inputs as the binary partitions are invariant to monotonic rescaling of the training data.
 Secondly, and of particular importance for climate problems, they are unable to extrapolate outside of their training data because the predictions are averages over subsets of the training dataset.
-As a result of this, a Random Forest trained on output from an idealized GCM was shown to automatically conserve water and energy (O’Gorman and Dwyer, 2018).
 
-These features are of particular importance for problems involving the parameterization of sub-grid processes in climate models (Beucler et al., 2021) and as such, although parameterization is not the purpose of ESEm, we include a simple Random Forest implementation and hope to build on this in future.
-
+An example of emulation using the random forest can be found in `CRM_Emulation_with_RandomForest.ipynb <examples/CRM_Emulation_with_RandomForest.html>`_.
 
 Data processing
 ===============
@@ -85,7 +80,7 @@ ESEm provides a simple and transparent way of transforming the datasets for trai
 
 Where these transformations are strictly necessary for a given model then it will be included in the wrapper function. Other choices are left to the user to apply as required.
 
-A full list of the data processors can be found in the API documentation: `api`_
+A full list of the data processors can be found in the `API documentation <api.html#dataprocessor>`_.
 
 Feature selection
 =================
