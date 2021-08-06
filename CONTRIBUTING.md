@@ -9,7 +9,7 @@ If you have a general question regarding installing / using / understanding ESEm
 If you have a problem with ESEm and it isn't working as documented or is producing unexpected errors then please check in the [Issues](https://github.com/duncanwp/ESEm/issues) page to see if anyone else has reported a similar problem. 
 Feel free to comment on associated issues so that we know who it's affecting. 
 
-If there isn't an appropriate existing issue, please create one and be as descriptive as possible about what you expected to happen and what actually happened. Please also explain what you've tried to fix it.
+If there isn't an appropriate existing issue, please create one and be as descriptive as possible about what you expected to happen and what actually happened. Please also include a minimal working example to demonstrate the issue and explain what you've tried to fix it.
 
 ## Enhancements and other constributions 
 We welcome suggestions for improvements and (even better!) pull requests implementing such improvements. 
