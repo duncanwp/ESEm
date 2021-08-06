@@ -30,7 +30,7 @@ With this in mind we have broadly defined areas we would welcome contributions, 
  - Other data pre-processors
 
 ### Contributions likely to be rejected
- - Implementation of emulation techniques within ESEm
+ - Implementation of emulation techniques from scratch within ESEm
  - Data reading / writing routines
 
 ## Code of conduct
