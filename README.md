@@ -21,10 +21,15 @@ Documentation
 
 Detailed instructions and example notebooks can be found in our official doccumentation at https://esem.readthedocs.io/en/latest/
 
+Citation
+--------
+
+If you use ESEm in your research please be sure to cite our paper: [Coming soon!]
+
 Contributing
 ------------
 
-Contributions to ESEm of any size are very welcome, please see our [Contributing] page for more details.
+Contributions to ESEm of any size are very welcome, please see our [Contributing](https://github.com/duncanwp/ESEm/blob/master/CONTRIBUTING.md) page for more details.
 
 
 Get in touch
