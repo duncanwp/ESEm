@@ -2,6 +2,13 @@ from abc import ABC, abstractmethod
 
 
 class ModelAdaptor(ABC):
+    """
+    Provides a unified interface for all emulation engines within ESEm.
+    Concrete classes must implement both :meth:`train` and :meth:`predict` methods.
+
+    See the `API documentation <../api.html#dataprocessor>`_ for a list of concrete
+    classes implementing this interface.
+    """
 
     def __init__(self, model):
         self.model = model
@@ -27,14 +34,7 @@ class ModelAdaptor(ABC):
 
 class SKLearnModel(ModelAdaptor):
     """
-    Simple Random Forest Regression model for emulation.
-
-    Note that because a Random Forest is just a
-    recursive binary partition over the training data,
-    there is no need to normalize/standardize the inputs.
-
-    i.e. At least in theory, Random Forests are invariant
-    to monotonic transformations of the independent variables
+    A wrapper around `scikit-learn <https://scikit-learn.org>`_ models.
     """
 
     def train(self, training_params, training_data, verbose=False, **kwargs):
@@ -54,13 +54,12 @@ class SKLearnModel(ModelAdaptor):
 
 class KerasModel(ModelAdaptor):
     """
-    Perform emulation using a simple two layer convolutional NN.
-    Note that X should include both the train and validation data
+    A wrapper around `Keras <https://keras.io/>`_ models
     """
 
     def train(self, training_params, training_data, verbose=False, epochs=100, batch_size=8, validation_split=0.2, **kwargs):
         """
-        Train the (keras) NN model.
+        Train the Keras model.
 
         :param X:
         :param verbose:
@@ -80,8 +79,7 @@ class KerasModel(ModelAdaptor):
 
 class GPFlowModel(ModelAdaptor):
     """
-    Simple Gaussian Process (GP) regression emulator which assumes independent
-    inputs (and outputs). Different kernels can be specified.
+    A wrapper around `GPFlow <https://gpflow.readthedocs.io/en/master/#>`_ regression models
     """
 
     def train(self, training_params, training_data, verbose=False, maxiter=100, **kwargs):

@@ -14,6 +14,7 @@ If there isn't an appropriate existing issue, please create one and be as descri
 ## Enhancements and other constributions 
 We welcome suggestions for improvements and (even better!) pull requests implementing such improvements. 
 We hope the code is quite readable such that extensions and improvements are easy to implement and welcome first-time pull-requests. 
+The [design](https://esem.readthedocs.io/en/latest/design.html) page in the documentation provides a useful resource detailing the architecture and our thinking behind it.
 Some useful guides to making a pull-request can be found at http://makeapullrequest.com/ and http://www.firsttimersonly.com/.
 
 We are proud to have excellent test coverage for the code base and will request that any new contributions ensure similar coverage.

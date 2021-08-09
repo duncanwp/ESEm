@@ -5,6 +5,14 @@ import tensorflow as tf
 
 class DataProcessor(ABC):
 
+    """
+    A utility class for transparently processing (transforming) numpy arrays and
+    un-processing TensorFlow Tensors to aid in emulation.
+
+    See the `API documentation <../api.html#dataprocessor>`_ for a list of concrete
+    classes implementing this interface.
+    """
+
     @abstractmethod
     def process(self, data):
         pass
@@ -15,6 +23,9 @@ class DataProcessor(ABC):
 
 
 class Whiten(DataProcessor):
+    """
+    Scale the data to have zero mean and unit variance
+    """
 
     def process(self, data):
         # Useful for whitening the training data
@@ -29,6 +40,9 @@ class Whiten(DataProcessor):
 
 
 class Normalise(DataProcessor):
+    """
+    Linearly scale the data to lie between [0, 1]
+    """
 
     def process(self, data):
         # Useful for normalising the training data
@@ -42,6 +56,9 @@ class Normalise(DataProcessor):
 
 
 class Log(DataProcessor):
+    """
+    Return log(x + c) where c can be specified.
+    """
 
     def __init__(self, constant=0.):
         self.constant = constant
@@ -55,6 +72,9 @@ class Log(DataProcessor):
 
 
 class Flatten(DataProcessor):
+    """
+    Flatten all dimensions except the leading one
+    """
 
     def process(self, data):
         # Flatten the data
@@ -69,9 +89,11 @@ class Flatten(DataProcessor):
 
 
 class Reshape(DataProcessor):
+    """
+    Ensure the training data is the right shape for the ConvNet
+    """
 
     def process(self, data):
-        # Check the training data is the right shape for the ConvNet
         self.add_newaxis = False
 
         if data.ndim < 3:
@@ -93,6 +115,9 @@ class Reshape(DataProcessor):
 
 
 class Recast(DataProcessor):
+    """
+    Cast the data to a given type
+    """
 
     def __init__(self, new_type):
         self.new_type = new_type

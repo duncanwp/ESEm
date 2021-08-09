@@ -12,6 +12,8 @@ documentation.
 Top-level functions
 ===================
 
+This provides the main interface for ESEm and should be the starting point for most users.
+
 .. autosummary::
    :toctree: generated/
 
@@ -28,6 +30,7 @@ Emulator
    Emulator
    Emulator.train
    Emulator.predict
+   Emulator._predict
    Emulator.batch_stats
 
 MCMCSampler
@@ -73,6 +76,9 @@ ModelAdaptor
    :toctree: generated/
 
    ModelAdaptor
+   SKLearnModel
+   KerasModel
+   GPFlowModel
 
 
 DataProcessor
@@ -92,6 +98,8 @@ DataProcessor
 
 Utilities
 =========
+
+A collection of associated utilities which might be of use when performing typical ESEm workflows.
 
 .. currentmodule:: esem.utils
 .. autosummary::

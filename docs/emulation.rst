@@ -36,9 +36,13 @@ This choice can often be informed by the physical setting and provides greater c
 The framework provided by GPFlow also allows for multi-output GP regression and ESEm takes advantage of this to automatically provide regression over each of the output features provided in the training data.
 E.g. :math:`Y` can be of arbitrary dimensionality. It will be automatically flattened and reshaped before being passed to GPFlow.
 
+The most convenient way to setup a GPFlow emulator is using the :func:`esem.gp_model` function which can be imported directly:
+
 .. code-block:: python
 
     from esem import gp_model
+
+This creates a regression model with a default kernel as described above but provides a convenient interface for defining arbitrary kernels as described in the function description :func:`esem.gp_model`.
 
 Examples of emulation using Gaussian processes can be found in `Emulating_using_GPs.ipynb <examples/Emulating_using_GPs.html>`_ and `CMIP6_emulator.ipynb <examples/CMIP6_emulator.html>`_.
 
@@ -56,6 +60,7 @@ ESEm provides a baseline CNN architecture based on the `Keras <https://keras.io/
   :width: 400
   :alt: Schematic illustration of the structure of the default convolutional neural network model.
 
+This model can be easily constructed using the :func:`esem.cnn_model` function.
 It is possible to use any Keras model in this way though and there are many potential ways of improving / developing this simple model.
 
 An example of emulation using this convolution neural network can be found in `Emulating_using_ConvNets.ipynb <examples/Emulating_using_ConvNets.html>`_.
@@ -68,6 +73,8 @@ Random Forest estimators are comprised of an ensemble of decision trees; each de
 As a result of this architecture, Random Forests (along with other algorithms built on decision trees) have two main attractions.
 Firstly, they require very little pre-processing of the inputs as the binary partitions are invariant to monotonic rescaling of the training data.
 Secondly, and of particular importance for climate problems, they are unable to extrapolate outside of their training data because the predictions are averages over subsets of the training dataset.
+
+This model can be constructed using the :func:`esem.rf_model` function. All of the relevant scikit-learn arguments and keyword-arguments can be provided through this interface.
 
 An example of emulation using the random forest can be found in `CRM_Emulation_with_RandomForest.ipynb <examples/CRM_Emulation_with_RandomForest.html>`_.
 

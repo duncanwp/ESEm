@@ -15,6 +15,7 @@ Welcome to ESEm's documentation!
    calibration
    examples
    api
+   design
 
 Indices and tables
 ==================

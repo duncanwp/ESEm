@@ -24,7 +24,8 @@ def gp_model(training_params, training_data, data_processors=None,
              kernel=None, kernel_op='add', active_dims=None, noise_variance=1.,
              name='', gpu=0):
     """
-    Create a Gaussian process (GP) based emulator with provided `training_params` (X) and `training_data` (Y).
+    Create a Gaussian process (GP) based emulator with provided `training_params` (X) and `training_data` (Y) which
+    assumes independent inputs (and outputs).
 
     The `kernel` is a key parameter in GP emulation and care should be taken in choosing it.
 
@@ -34,8 +35,8 @@ def gp_model(training_params, training_data, data_processors=None,
         The training parameters
     training_data: Cube or array_like
         The training data - the leading dimension should represent training samples
-    data_processors: list of GCEm.data_processors.DataProcessor
-        A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
+    data_processors: list of esem.data_processors.DataProcessor
+        A list of 'DataProcessor`s to apply to the data transparently before training. Model output will be
         un-transformed before being returned from the Emulator.
     kernel: gpflow.kernels.Kernel or list of str or None
         The GP kernel to use.  A GPFlow kernel can be specified directly, or a list of kernel names can be provided
@@ -55,7 +56,7 @@ def gp_model(training_params, training_data, data_processors=None,
     Returns
     -------
     Emulator
-        A esem emulator object which can be trained and sampled from
+        An esem emulator object which can be trained and sampled from
 
     """
 
@@ -162,7 +163,9 @@ def cnn_model(training_params, training_data, data_processors=None,
               kernel_size=(3, 5), loss='mean_squared_error',
               activation='tanh', optimizer='RMSprop', name='', gpu=0):
     """
-    Create a Convolutional Neural Network Emulator using Keras.
+    Create a simple two layer Convolutional Neural Network Emulator using Keras.
+
+    Note that X should include both the train and validation data
 
     Parameters
     ----------
@@ -170,7 +173,7 @@ def cnn_model(training_params, training_data, data_processors=None,
         The training parameters
     training_data: iris.cube.Cube or array_like
         The training data - the leading dimension should represent training samples
-    data_processors: list of GCEm.data_processors.DataProcessor
+    data_processors: list of esem.data_processors.DataProcessor
         A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
         un-transformed before being returned from the Emulator.
     filters: int
@@ -196,7 +199,7 @@ def cnn_model(training_params, training_data, data_processors=None,
     Returns
     -------
     Emulator
-        A esem emulator object which can be trained and sampled from
+        An esem emulator object which can be trained and sampled from
 
 
     Notes
@@ -253,8 +256,14 @@ def cnn_model(training_params, training_data, data_processors=None,
 
 def rf_model(training_params, training_data, data_processors=None, name='', gpu=0, *args, **kwargs):
     """
-    Create a Random Forest Emulator using sklearn.
+    Create a simple Random Forest Emulator using sklearn.
 
+    Note that because a Random Forest is just a
+    recursive binary partition over the training data,
+    there is no need to normalize/standardize the inputs.
+
+    i.e. At least in theory, Random Forests are invariant
+    to monotonic transformations of the independent variables
 
     Parameters
     ----------
@@ -262,7 +271,7 @@ def rf_model(training_params, training_data, data_processors=None, name='', gpu=
         The training parameters
     training_data: iris.cube.Cube or array_like
         The training data - the leading dimension should represent training samples
-    data_processors: list of GCEm.data_processors.DataProcessor
+    data_processors: list of esem.data_processors.DataProcessor
         A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
         un-transformed before being returned from the Emulator.
     name: str
@@ -277,7 +286,7 @@ def rf_model(training_params, training_data, data_processors=None, name='', gpu=
     Returns
     -------
     Emulator
-        A esem emulator object which can be trained and sampled from
+        An esem emulator object which can be trained and sampled from
 
     """
     from .model_adaptor import SKLearnModel

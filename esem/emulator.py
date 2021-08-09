@@ -62,6 +62,7 @@ class Emulator:
     def train(self, verbose=False, **kwargs):
         """
         Train on the training data
+
         :return:
         """
         self.model.train(self.training_params, self.training_data.data, verbose=verbose, **kwargs)
