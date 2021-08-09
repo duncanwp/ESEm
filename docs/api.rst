@@ -24,6 +24,7 @@ This provides the main interface for ESEm and should be the starting point for m
 Emulator
 ========
 
+.. currentmodule:: esem.emulator
 .. autosummary::
    :toctree: generated/
 
