@@ -17,17 +17,17 @@ underlying numpy array to the emulation engines. When the data is requested from
 replaced by the emulated data, or if no cube was provided then just the data.
 
 This layer will also ensure the (numpy) data is wrapped in a :class:`esem.cube_wrapper.DataWrapper`. This class
-transparently applies any requested :class:`esem.data_processors.DataProcessor`s in sequence.
+transparently applies any requested :class:`esem.data_processors.DataProcessor` in sequence.
 
 The user can then create an :class:`esem.emulator.Emulator` object by providing a concrete
 :class:`esem.model_adaptor.ModelAdaptor` such as a :class:`esem.model_adaptor.KerasModel`. There are two layers of
 abstraction here: The first to deal with different interfaces to different emulation libraries; and the second to apply
-the pre- and post-processing and allow a single :meth:`esem.model_adaptor.ModelAdaptor.batch_stats` method. The
+the pre- and post-processing and allow a single :meth:`esem.emulator.Emulator.batch_stats` method. The
 :meth:`esem.emulator.Emulator._predict` provides an important internal interface to the underlying model which reverts
 any data-processing but leaves the emulator output as a TensorFlow Tensor to allow optimal sampling.
 
-The top-level functions :func:`esem.` and  provide an simple interface for constructing these emulators and should
-be sufficient for most users.
+The top-level functions :func:`esem.gp_model`, :func:`esem.cnn_model` and :func:`esem.rf_model` provide an simple 
+interface for constructing these emulators and should be sufficient for most users.
 
 Calibration
 ===========
