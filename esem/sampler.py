@@ -17,20 +17,32 @@ class Sampler(ABC):
                  abs_repres_uncertainty=0., abs_struct_uncertainty=0.,
                  ):
         """
-        :param esem.model.Model model:
-        :param iris.cube.Cube like object obs: The objective
-        :param float obs_uncertainty: Fractional, relative (1 sigma) uncertainty in observations
-        :param float repres_uncertainty: Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
-         representitiveness of the observations
-        :param float interann_uncertainty: Fractional, relative (1 sigma) uncertainty introduced when using a model run
-         for a year other than that the observations were measured in.
-        :param float struct_uncertainty: Fractional, relative (1 sigma) uncertainty in the model itself.
-        :param float abs_obs_uncertainty: Fractional, absolute (1 sigma)  uncertainty in observations
-        :param float abs_repres_uncertainty: Fractional, absolute (1 sigma)  uncertainty due to the spatial and temporal
-         representitiveness of the observations
-        :param float abs_interann_uncertainty: Fractional, absolute (1 sigma)  uncertainty introduced when using a model run
-         for a year other than that the observations were measured in.
-        :param float abs_struct_uncertainty: Fractional, absolute (1 sigma)  uncertainty in the model itself.
+
+        Parameters
+        ----------
+        model: esem.emulator.Emulator
+        obs: iris.cube.Cube or array-like
+            The objective
+        obs_uncertainty: float
+            Fractional, relative (1 sigma) uncertainty in observations
+        repres_uncertainty: float
+            Fractional, relative (1 sigma) uncertainty due to the spatial and temporal
+            representitiveness of the observations
+        interann_uncertainty: float
+            Fractional, relative (1 sigma) uncertainty introduced when using a model run
+            for a year other than that the observations were measured in.
+        struct_uncertainty: float
+            Fractional, relative (1 sigma) uncertainty in the model itself.
+        abs_obs_uncertainty: float
+            Fractional, absolute (1 sigma)  uncertainty in observations
+        abs_repres_uncertainty: float
+            Fractional, absolute (1 sigma)  uncertainty due to the spatial and temporal
+            representitiveness of the observations
+        abs_interann_uncertainty: float
+            Fractional, absolute (1 sigma)  uncertainty introduced when using a model run
+            for a year other than that the observations were measured in.
+        abs_struct_uncertainty: float
+            Fractional, absolute (1 sigma)  uncertainty in the model itself.
 
         """
         self.model = model
@@ -85,10 +97,18 @@ class Sampler(ABC):
         It should call model.sample over the prior, compare with the objective, and then output samples
         from the posterior distribution
 
-        :param tensorflow_probability.distribution prior_x: The distribution to sample parameters from.
-         By default it will uniformly sample the unit N-D hypercube
-        :param int n_samples: The number of samples to draw
-        :return np.array : Array of samples
+        Parameters
+        ----------
+        prior_x: tensorflow_probability.distribution
+            The distribution to sample parameters from.
+            By default it will uniformly sample the unit N-D hypercube
+        n_samples: int
+            The number of samples to draw
+
+        Returns
+        -------
+        np.array
+            Array of samples
         """
         pass
 
@@ -115,12 +135,22 @@ class MCMCSampler(Sampler):
         It should call model.sample over the prior, compare with the objective, and then output a posterior
         distribution
 
-        :param tensorflow_probability.distribution prior_x: The distribution to sample parameters from.
-         By default it will uniformly sample the unit N-D hypercube
-        :param int n_samples: The number of samples to draw
-        :param dict kernel_kwargs: kwargs for the MCMC kernel
-        :param dict mcmc_kwargs: kwargs for the MCMC sampler
-        :return:
+        Parameters
+        ----------
+        prior_x: tensorflow_probability.distribution
+            The distribution to sample parameters from.
+            By default it will uniformly sample the unit N-D hypercube
+        n_samples: int
+            The number of samples to draw
+        kernel_kwargs: dict
+            kwargs for the MCMC kernel
+        mcmc_kwargs: dict
+            kwargs for the MCMC sampler
+
+        Returns
+        -------
+        np.array
+            Array of samples
         """
         if prior_x is None:
             prior_x = tfd.Uniform(low=tf.zeros(self.model.n_params, dtype=tf.float64),

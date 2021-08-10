@@ -22,12 +22,18 @@ class Emulator:
     def __init__(self, model, training_params, training_data, name='', gpu=0):
         """
 
-        :param ModelAdaptor model: The (compiled) model to be wrapped
-        :param pd.DataFrame training_params: The training parameters
-        :param GCEm.cube_wrapper.CubeWrapper training_data: The training data - the leading dimension should represent training samples
-        :param str name: Human readable name for the model
-        :param int gpu: The machine GPU to assign this model to
-        :param None or list of DataProcessors data_processors: A list of data processors to apply to the data
+        Parameters
+        ----------
+        model: ModelAdaptor
+            The (compiled but not trained) model to be wrapped
+        training_params: pd.DataFrame or array-like
+            The training parameters
+        training_data: esem.cube_wrapper.CubeWrapper or iris.Cube or array-like
+          The training data - the leading dimension should represent training samples
+        name: str
+            Human readable name for the model
+        gpu: int
+            The machine GPU to assign this model to
         """
         from contextlib import nullcontext
         from iris.cube import Cube
