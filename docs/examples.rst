@@ -10,4 +10,5 @@ Examples
     examples/Calibrating_GPs_using_ABC
     examples/Calibrating_GPs_using_MCMC
     examples/CMIP6_emulator
+    examples/Create_GP_and_CNN_emulation_figure
 
