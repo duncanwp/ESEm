@@ -7,7 +7,7 @@ from esem.utils import tf_tqdm
 class ABCSampler(Sampler):
     """
     Sample from the posterior using Approximate Bayesian Computation (ABC).
-     This is a style of rejection sampling.
+    This is a style of rejection sampling.
 
     Notes
     -----
@@ -90,7 +90,7 @@ class ABCSampler(Sampler):
             I < T
 
         Return True (for a sample) if the number of implausibility measures greater
-         than the threshold is less than or equal to the tolerance
+        than the threshold is less than or equal to the tolerance
 
 
         Parameters
@@ -134,7 +134,7 @@ def constrain(implausibility, tolerance=0., threshold=3.0):
             I < T
 
         Return True (for a sample) if the number of implausibility measures greater
-         than the threshold is less than or equal to the tolerance
+        than the threshold is less than or equal to the tolerance
 
     Parameters
     ----------
@@ -304,7 +304,7 @@ def get_valid_sample(model, obs, dist, threshold, tolerance, total_variance):
 @tf.function
 def is_valid_sample(model, obs, sample, threshold, tolerance, total_variance):
     """
-     Given a sample determine if it is 'valid' or not
+    Given a sample determine if it is 'valid' or not
 
     :param model:
     :param obs:

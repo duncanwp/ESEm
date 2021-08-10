@@ -23,10 +23,8 @@ class ModelAdaptor(ABC):
     @abstractmethod
     def predict(self, *args, **kwargs):
         """
-        This is either the tf model which I can then call, or a generator over the model.predict (in tf, so it's quick).
-        This function
-
-        The sampler (using either tf.probability.mcmc and my ABC method) can then just call this to get samples
+        This is either the tf model which can be called directly, or a generator over the model.predict (in tf,
+        so it's quick).
 
         :return:
         """

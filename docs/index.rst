@@ -16,6 +16,7 @@ Welcome to ESEm's documentation!
    examples
    api
    design
+   glossary
 
 Indices and tables
 ==================

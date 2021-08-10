@@ -36,7 +36,7 @@ def gp_model(training_params, training_data, data_processors=None,
     training_data: Cube or array_like
         The training data - the leading dimension should represent training samples
     data_processors: list of esem.data_processors.DataProcessor
-        A list of 'DataProcessor`s to apply to the data transparently before training. Model output will be
+        A list of 'DataProcessor` to apply to the data transparently before training. Model output will be
         un-transformed before being returned from the Emulator.
     kernel: gpflow.kernels.Kernel or list of str or None
         The GP kernel to use.  A GPFlow kernel can be specified directly, or a list of kernel names can be provided
@@ -174,7 +174,7 @@ def cnn_model(training_params, training_data, data_processors=None,
     training_data: iris.cube.Cube or array_like
         The training data - the leading dimension should represent training samples
     data_processors: list of esem.data_processors.DataProcessor
-        A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
+        A list of `DataProcessor` to apply to the data transparently before training. Model output will be
         un-transformed before being returned from the Emulator.
     filters: int
         The dimensionality of the first convolutional layer output space
@@ -272,7 +272,7 @@ def rf_model(training_params, training_data, data_processors=None, name='', gpu=
     training_data: iris.cube.Cube or array_like
         The training data - the leading dimension should represent training samples
     data_processors: list of esem.data_processors.DataProcessor
-        A list of `DataProcessor`s to apply to the data transparently before training. Model output will be
+        A list of `DataProcessor` to apply to the data transparently before training. Model output will be
         un-transformed before being returned from the Emulator.
     name: str
         An optional name for the emulator

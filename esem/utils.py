@@ -290,7 +290,7 @@ def get_param_mask(X, y, criterion='bic', **kwargs):
 
     Returns
     -------
-    mask : array
+    mask : ndarray
         A boolean array of shape [# input features], in which an element is
         True iff its corresponding feature is selected for retention.
     """

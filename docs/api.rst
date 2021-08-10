@@ -63,6 +63,7 @@ CubeWrapper
 .. autosummary::
    :toctree: generated/
 
+   DataWrapper
    CubeWrapper
    CubeWrapper.name
    CubeWrapper.data

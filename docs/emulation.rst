@@ -4,7 +4,7 @@ Emulating with ESEm
 ===================
 
 ESEm provides a simple and streamlined interface to emulate earth system datasets stored as iris Cubes, denoted :math:`Y` in the following documentation.
-The corresponding predictors (:math:`X`) can be provided as a numpy array or pandas `DataFrame`s.
+The corresponding predictors (:math:`X`) can be provided as a numpy array or pandas `DataFrame`.
 This emulation is essentially just a regression estimating the functional form:
 
 .. math::

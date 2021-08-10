@@ -84,7 +84,7 @@ class Emulator:
     def _predict(self, *args, **kwargs):
         """
         The (internal) predict interface used by e.g., a sampler. It is still in tf but has been post-processed
-         to allow comparison with obs.
+        to allow comparison with obs.
 
         :param args:
         :param kwargs:
@@ -98,8 +98,8 @@ class Emulator:
     def batch_stats(self, sample_points, batch_size=1):
         """
         Return mean and standard deviation in model predictions over samples,
-         without storing the intermediate predicions in memory to enable
-         evaluating large models over more samples than could fit in memory
+        without storing the intermediate predicions in memory to enable
+        evaluating large models over more samples than could fit in memory
 
         :param sample_points:
         :param int batch_size:
