@@ -15,6 +15,7 @@ Top-level functions
 This provides the main interface for ESEm and should be the starting point for most users.
 
 .. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    gp_model
@@ -26,6 +27,7 @@ Emulator
 
 .. currentmodule:: esem.emulator
 .. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    Emulator
@@ -34,11 +36,25 @@ Emulator
    Emulator._predict
    Emulator.batch_stats
 
-MCMCSampler
-===========
+Sampler
+=======
+
+This class defines the sampling interface currently used by the ABC and MCMC
+sampling implementations.
 
 .. currentmodule:: esem.sampler
 .. autosummary::
+   :nosignatures:
+   :toctree: generated/
+
+   Sampler
+   Sampler.sample
+
+MCMCSampler
+-----------
+
+.. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    MCMCSampler
@@ -49,6 +65,7 @@ ABCSampler
 
 .. currentmodule:: esem.abc_sampler
 .. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    ABCSampler
@@ -61,6 +78,7 @@ CubeWrapper
 
 .. currentmodule:: esem.cube_wrapper
 .. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    DataWrapper
@@ -75,6 +93,7 @@ ModelAdaptor
 
 .. currentmodule:: esem.model_adaptor
 .. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    ModelAdaptor
@@ -88,6 +107,7 @@ DataProcessor
 
 .. currentmodule:: esem.data_processors
 .. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    DataProcessor
@@ -105,6 +125,7 @@ A collection of associated utilities which might be of use when performing typic
 
 .. currentmodule:: esem.utils
 .. autosummary::
+   :nosignatures:
    :toctree: generated/
 
    plot_results

@@ -34,7 +34,7 @@ Calibration
 
 We try and keep this interface very simple; a :class:`esem.sampler.Sampler` should be initialised with an
 :class:`esem.emulator.Emulator` object to sample from, some observations and associated uncertainties. The only method
-it has to provide is :meth:`esem.sampler.Sampler.sample` which should provide sample :math:`\theta`s from the posterior.
+it has to provide is :meth:`esem.sampler.Sampler.sample` which should provide sample :math:`\theta` from the posterior.
 
 Wherever possible these samplers should take advantage of the fact that the :meth:`esem.emulator.Emulator._predict`
 method returns TensorFlow tensors and always prefer to use them directly rather than using :meth:`esem.emulator.Emulator.predict`
