@@ -205,6 +205,21 @@ def ensemble_collocate(ensemble, observations, member_dimension='job'):
 def leave_one_out(Xdata, Ydata, model='RandomForest', **model_kwargs):
     """
     Function to perform LeaveOneOut cross-validation with different models. 
+    
+    Parameters
+    ----------
+    Xdata : array-like of shape (n_samples, n_features)
+            Parameter values
+    Ydata : array-like of shape (n_samples,)
+            Target values.
+    model: {'RandomForest', 'GaussianProcess', 'NeuralNet'}, default='RandomForest'
+    model_kwargs: dict
+            More arguments to pass to the model.
+            
+    Returns
+    ----------
+    output: list of n_samples (truth, prediction, variance) tuples 
+            which can then be passed to esem.utils.validation_plot()
     """
     from esem import rf_model
     from esem import gp_model
