@@ -99,6 +99,7 @@ Where these transformations are strictly necessary for a given model then it wil
 For example, to 'whiten' the data (that is, remove the mean and normalise by the standard deviation):
 
 .. code-block:: python
+
    import esem
    from esem import gp_model
    
