@@ -47,6 +47,8 @@ This creates a regression model with a default kernel as described above but pro
 .. code-block:: python
 
     from esem import gp_model
+    
+    # X_train and Y_train are our predictors and outputs, respectively.
     model = gp_model(X_train, Y_train, kernel=['Linear', 'Cosine'], kernel_op='add')
     
 Further details are described in the function description :func:`esem.gp_model`.
@@ -103,6 +105,7 @@ For example, to 'whiten' the data (that is, remove the mean and normalise by the
    import esem
    from esem import gp_model
    
+   # X_train and Y_train are our predictors and outputs, respectively.
    model = gp_model(X_train, Y_train, data_processors=[esem.data_processors.Whiten()])
 
 A full list of the data processors can be found in the `API documentation <api.html#dataprocessor>`_.
