@@ -4,6 +4,8 @@ Earth System Emulator (ESEm)
 [![CircleCI](https://circleci.com/gh/duncanwp/ESEm.svg?style=svg)](https://circleci.com/gh/duncanwp/ESEm)
 [![codecov](https://codecov.io/gh/duncanwp/ESEm/branch/master/graph/badge.svg?token=4QI2G22Q3M)](https://codecov.io/gh/duncanwp/ESEm)
 [![readthedocs](https://readthedocs.org/projects/pip/badge/?version=latest&style=plastic)](https://esem.readthedocs.io/en/latest/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5196631.svg)](https://doi.org/10.5281/zenodo.5196631)
+[![PyPI version](https://badge.fury.io/py/ESEm.svg)](https://pypi.org/project/ESEm/)
 
 A tool for emulating geophysical datasets including (but not limited to!) Earth System Models.
 
