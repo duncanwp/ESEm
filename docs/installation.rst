@@ -6,7 +6,7 @@ Installing ESEm
 Currently installing ESEm is a two step process. This is because `Iris <https://scitools-iris.readthedocs.io/en/stable/>`_ cannot be installed via pip and installing tensorflow via conda doesn't provide machine level optimisations.
 This is a long-standing issue that is unlikely to be quickly resolved but the steps below should provide a stable environment.
 
-Having installed (mini-) conda, you can easily install Iris with the following command::
+Having installed (mini-) conda - and ideally within a fresh environment - you can easily install Iris with the following command::
 
     $ conda install -c conda-forge iris
 
