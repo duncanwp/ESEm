@@ -21,7 +21,7 @@ These tasks aren't just restricted to emulating and calibrating models though an
 Documentation
 -------------
 
-Detailed instructions and example notebooks can be found in our official doccumentation at https://esem.readthedocs.io/en/latest/
+Detailed instructions and example notebooks can be found in our official documentation at https://esem.readthedocs.io/en/latest/
 
 Citation
 --------
