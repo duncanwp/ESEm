@@ -90,6 +90,7 @@ def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, m
     ax.set_xlim([minx, maxx])
     ax.set_ylim([miny, maxy])
 
+
 def validation_plot_bastos(X_test, Y_test, m_test, v_test):
     """
     Validation plot following Bastos and O'Hagan (2009)
@@ -140,16 +141,12 @@ def validation_plot_bastos(X_test, Y_test, m_test, v_test):
     axs[1, 0].set_ylim([end_pts[0][1], end_pts[1][1]])
     axs[1, 0].set_ylabel('Standardized quantiles')
 
-    # below is very unelegant way to get the input into the right shape for a scatter plot
-    # Any suggestions on how to improve it are very welcome!
-    X_params = np.zeros((np.shape(m_test.data)[0], np.shape(m_test.data)[1],
-                         np.shape(m_test.data)[2], np.shape(X_test)[1]))
-    for i in range(0,96):
-        for j in range(0,192):
-            X_params[:,i,j,:] = X_test
+    for i in range(0, np.shape(X_test)[1]):
+        # Slightly convoluted way to expand the parameters to match the shape of the outputs
+        expanded_params = np.broadcast_to(np.expand_dims(X_test.to_numpy()[:, i], axis=[i for i in range(1, len(errors_std.shape))]),
+                                          errors_std.shape)
+        axs[0, 1].scatter(expanded_params, errors_std, c=colors[i], label=X_test.columns[i], marker='.', alpha=alpha)
 
-    for i in range(0,np.shape(X_test)[1]):
-        axs[0, 1].scatter(X_params[:,:,:,i], errors_std, c=colors[i], label=str(i), marker='.', alpha=alpha)
     axs[0, 1].legend()
     axs[0, 1].set_xlabel(r'$\eta_i$')
     axs[0, 1].set_ylabel(r'$({Y_{\mathrm{sim}} - Y_{\mathrm{emu}})}/{\sqrt{V}}$')
@@ -190,6 +187,7 @@ def validation_plot_bastos(X_test, Y_test, m_test, v_test):
 
     ax.set_xlim([min(minx, miny), max(maxx, maxy)])
     ax.set_ylim([min(minx, miny), max(maxx, maxy)])
+
 
 def plot_parameter_space(df, nbins=100, target_df=None, smooth=True,
                          xmins=None, xmaxs=None, fig_size=(8, 6)):
