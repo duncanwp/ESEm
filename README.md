@@ -26,7 +26,7 @@ Detailed instructions and example notebooks can be found in our official documen
 Citation
 --------
 
-If you use ESEm in your research please be sure to cite our paper: https://gmd.copernicus.org/preprints/gmd-2021-267/
+If you use ESEm in your research please be sure to cite our [paper](https://gmd.copernicus.org/preprints/gmd-2021-267/).
 
 Contributing
 ------------
