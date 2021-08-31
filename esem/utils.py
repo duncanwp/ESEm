@@ -280,7 +280,7 @@ class tf_tqdm(object):
         self.unit = unit
         self.batch_size = batch_size
         self.total = total
-        self.bar = tqdm(file=io.StringIO(), unit=unit, total=int(total))
+        self.bar = tqdm_notebook(file=io.StringIO(), unit=unit, total=int(total))
 
     def update(self):
         self.bar.update(self.batch_size)
