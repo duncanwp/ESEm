@@ -29,9 +29,9 @@ class Emulator:
         model: ModelAdaptor
             The (compiled but not trained) model to be wrapped
         training_params: pd.DataFrame or array-like
-            The training parameters
+            The training parameters (X)
         training_data: esem.wrappers.DataWrapper or xarray.DataArray or iris.Cube or array-like
-            The training data - the leading dimension should represent training samples
+            The training data - the leading dimension should represent training samples (Y)
         name: str
             Human readable name for the model
         gpu: int
@@ -65,35 +65,61 @@ class Emulator:
         """
         Train on the training data
 
-        :return:
+        Parameters
+        ----------
+        verbose: bool
+            Print verbose training output to screen
         """
         self.model.train(self.training_params, self.training_data.data, verbose=verbose, **kwargs)
 
-    def predict(self, *args, **kwargs):
+    def predict(self, x, *args, **kwargs):
         """
         Make a prediction using a trained emulator
 
-        :param args:
-        :param kwargs:
-        :return : Emulated results with the same type as `self.training_data`
+        Parameters
+        ----------
+        x: pd.DataFrame or array-like
+            The points at which to make predictions from the model
+        args:
+            The specific arguments needed for prediction with this model
+        kwargs:
+            Any keyword arguments that might need to be passed through to the model
+
+        Returns
+        -------
+        Emulated prediction and variance with the same type as `self.training_data`
         """
+        import pandas as pd
+
+        if isinstance(x, pd.DataFrame):
+            x = x.to_numpy()
+
         # TODO: Add a warning if .train hasn't been called?
-        mean, var = self._predict(*args, **kwargs)
+        mean, var = self._predict(x, *args, **kwargs)
 
         return (self.training_data.wrap(mean, 'Emulated '),
                 self.training_data.wrap(var, 'Variance in emulated '))
 
-    def _predict(self, *args, **kwargs):
+    def _predict(self, x, *args, **kwargs):
         """
         The (internal) predict interface used by e.g., a sampler. It is still in tf but has been post-processed
         to allow comparison with obs.
 
-        :param args:
-        :param kwargs:
-        :return:
+        Parameters
+        ----------
+        x: array-like
+            The points at which to make predictions from the model
+        args:
+            The specific arguments needed for prediction with this model
+        kwargs:
+            Any keyword arguments that might need to be passed through to the model
+
+        Returns
+        -------
+        Emulated prediction and variance as either np.ndarray or tf.Tensor
         """
         with self.tf_device_context:
-            mean, var = self.model.predict(*args, **kwargs)
+            mean, var = self.model.predict(x, *args, **kwargs)
         # Left un-nested for readability
         return self.training_data.process_wrapper(mean, var)
 
@@ -103,11 +129,23 @@ class Emulator:
         without storing the intermediate predicions in memory to enable
         evaluating large models over more samples than could fit in memory
 
-        :param sample_points:
-        :param int batch_size:
-        :return:
+        Parameters
+        ----------
+        sample_points: pd.DataFrame or array-like
+            The parameter values at which to sample the emulator
+        batch_size: int
+            The number of samples to calculate in each batch. This can be optimised to fill the available (GPU) memory
+
+        Returns
+        -------
+        The batch mean and standard deviation with the same type as `self.training_data`
         """
+        import pandas as pd
         from esem.utils import tf_tqdm
+
+        if isinstance(sample_points, pd.DataFrame):
+            sample_points = sample_points.to_numpy()
+
         with self.tf_device_context:
             # TODO: Make sample points optional and just sample from a uniform distribution if not provided
             mean, sd = _tf_stats(self, tf.constant(sample_points),
