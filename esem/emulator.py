@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from esem.cube_wrapper import CubeWrapper
+from esem.wrappers import wrap_data
 from esem.model_adaptor import ModelAdaptor
 
 
@@ -12,8 +12,10 @@ class Emulator:
     Attributes
     ----------
 
-    training_data : iris.cube.Cube
-        The Iris cube representing the training data
+    training_data : esem.wrappers.DataWrapper
+        A wrapped representation of the training data
+    model: ModelAdaptor
+        The underlying model which performs the emulation
     name : str
         A human-readable name for the model
 
@@ -28,26 +30,20 @@ class Emulator:
             The (compiled but not trained) model to be wrapped
         training_params: pd.DataFrame or array-like
             The training parameters
-        training_data: esem.cube_wrapper.CubeWrapper or iris.Cube or array-like
-          The training data - the leading dimension should represent training samples
+        training_data: esem.wrappers.DataWrapper or xarray.DataArray or iris.Cube or array-like
+            The training data - the leading dimension should represent training samples
         name: str
             Human readable name for the model
         gpu: int
             The machine GPU to assign this model to
         """
         from contextlib import nullcontext
-        from iris.cube import Cube
         import pandas as pd
 
         assert isinstance(model, ModelAdaptor), "Model must be an instance of type ModelAdaptor"
         self.model = model
 
-        if isinstance(training_data, CubeWrapper):
-            self.training_data = training_data
-        elif isinstance(training_data, np.ndarray) or isinstance(training_data, Cube):
-            self.training_data = CubeWrapper(training_data)
-        else:
-            raise ValueError("Training data must be a cube, numpy array or CubeWrapper instance")
+        self.training_data = wrap_data(training_data)
 
         self.name = name or self.training_data.name()
 
@@ -79,7 +75,7 @@ class Emulator:
 
         :param args:
         :param kwargs:
-        :return iris.Cube: Emulated results
+        :return : Emulated results with the same type as `self.training_data`
         """
         # TODO: Add a warning if .train hasn't been called?
         mean, var = self._predict(*args, **kwargs)
@@ -99,7 +95,7 @@ class Emulator:
         with self.tf_device_context:
             mean, var = self.model.predict(*args, **kwargs)
         # Left un-nested for readability
-        return self.training_data.data_wrapper(mean, var)
+        return self.training_data.process_wrapper(mean, var)
 
     def batch_stats(self, sample_points, batch_size=1):
         """

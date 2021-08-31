@@ -6,6 +6,7 @@ channels:
 dependencies:
   # Mandatory dependencies
   - iris
+  - xarray
   - tqdm
 
   # build dependencies

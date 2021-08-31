@@ -168,17 +168,26 @@ def get_random_params(n_params, n_samples=5):
 
 def ensemble_collocate(ensemble, observations, member_dimension='job'):
     """
-     Efficiently collocate many ensemble members on to a set of (un-gridded) observations
+     Efficiently collocate (interpolate) many ensemble members on to a set of (un-gridded) observations
+
+    Note
+    ----
+    This function requires both Iris and CIS to be installed
 
     Parameters
     ----------
     ensemble: ~cis.data_io.gridded_data.GriddedData
+        The ensemble of (model) samples to interpolate on to the observations
     observations: ~cis.data_io.ungridded_data.UngriddedData
+        The observations on to which the observations will be sampled
     member_dimension: str
+        The name of the dimension which represents the ensemble members in `ensemble`
 
     Returns
     -------
-
+    col_ensemble: iris.cube.Cube
+        The ensemble values interpolated on to the observation locations, with the ensemble members
+        along the leading dimension.
     """
     from iris.cube import Cube, CubeList
     from iris.coords import DimCoord, AuxCoord

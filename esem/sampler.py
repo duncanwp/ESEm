@@ -49,6 +49,7 @@ class Sampler(ABC):
 
         # This tests for 'cube like' objects including CIS ungridded data
         #  I don't want to have to depend on CIS though to check explicitly
+        # TODO: it might be neater to use a DataWrapper here
         if hasattr(obs, 'data') and isinstance(obs.data, np.ndarray):
             obs = obs.data
 
