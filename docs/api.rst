@@ -73,20 +73,22 @@ ABCSampler
    ABCSampler.get_implausibility
    ABCSampler.batch_constrain
 
-CubeWrapper
-===========
+Wrappers
+========
 
-.. currentmodule:: esem.cube_wrapper
+.. currentmodule:: esem.wrappers
 .. autosummary::
    :nosignatures:
    :toctree: generated/
 
+   ProcessWrapper
    DataWrapper
+   DataWrapper.name
+   DataWrapper.data
+   DataWrapper.dtype
+   DataWrapper.wrap
    CubeWrapper
-   CubeWrapper.name
-   CubeWrapper.data
-   CubeWrapper.dtype
-   CubeWrapper.wrap
+   DataArrayWrapper
 
 ModelAdaptor
 ============
