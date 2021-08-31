@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tqdm import tqdm
+from tqdm import tqdm_notebook
 
 
 def add_121_line(ax):
@@ -120,12 +120,12 @@ def plot_parameter_space(df, nbins=100, target_df=None, smooth=True,
         ax.pcolor(X, Y, vals[:, np.newaxis], vmin=0, vmax=1)
         if target_df is not None:
             ax.plot([0, 1], [target_df[param], target_df[param]], c='r')
-        ax.set_xticks([], [])
+        ax.set_xticks([])
         ax.set_xticklabels('')
         ax.set_xlabel(param, rotation=90)
 
     for ax in axes[1:]:
-        ax.set_yticks([], [])
+        ax.set_yticks([])
         ax.set_yticklabels('')
 
 
