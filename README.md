@@ -39,7 +39,7 @@ For more detailed instructions, including using conda to install alongside iris 
 Citation
 --------
 
-If you use ESEm in your research please be sure to cite our paper: [Coming soon!]
+If you use ESEm in your research please be sure to cite our [paper](https://gmd.copernicus.org/preprints/gmd-2021-267/).
 
 Contributing
 ------------
