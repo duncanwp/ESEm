@@ -57,14 +57,13 @@ def prediction_within_ci(test_mean, pred_mean, pred_var, ci=0.95):
 def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, miny=None, maxx=None, maxy=None):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, figsize=figsize)
-    lower, upper, within_95_ci = prediction_within_ci(test_mean, pred_mean, pred_var)
 
     # Deal with input arrays that might be masked
     if isinstance(test_mean, np.ma.MaskedArray):
-        valid_points = test_mean.count()
-        within_95_ci = within_95_ci.compressed()
-    else:
-        valid_points = test_mean.shape[0]
+        test_mean, pred_mean, pred_var = test_mean[~test_mean.mask], pred_mean[~test_mean.mask], pred_var[~test_mean.mask]
+
+    lower, upper, within_95_ci = prediction_within_ci(test_mean, pred_mean, pred_var)
+    valid_points = test_mean.shape[0]
 
     print("Proportion of 'Bad' estimates : {:.2f}%".format(((~within_95_ci).sum()/valid_points)*100.))
 
