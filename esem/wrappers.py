@@ -82,6 +82,8 @@ class DataWrapper:
         :param str name_prefix:
         :return:
         """
+        if isinstance(data, tf.Tensor):
+            data = data.numpy()
         return data
 
 
