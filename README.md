@@ -26,11 +26,11 @@ Detailed instructions and example notebooks can be found in our official documen
 Installation
 ------------
 
-ESEm can be easily installed using pip, including tensorflow (with GPU support)::
+ESEm can be easily installed using pip, including tensorflow (with GPU support):
 
     $ pip install esem
 
-Optionally also install GPFlow, keras or scikit-learn e.g.,::
+Optionally also install GPFlow, keras or scikit-learn e.g.,:
 
     $ pip install esem[gpflow]
 
@@ -39,7 +39,18 @@ For more detailed instructions, including using conda to install alongside iris 
 Citation
 --------
 
-If you use ESEm in your research please be sure to cite our [paper](https://gmd.copernicus.org/preprints/gmd-2021-267/).
+If you use ESEm in your research please be sure to cite our [paper](https://gmd.copernicus.org/preprints/gmd-2021-267/):
+
+    @Article{gmd-2021-267,
+    AUTHOR = {Watson-Parris, D. and Williams, A. and Deaconu, L. and Stier, P.},
+    TITLE = {Model calibration using ESEm v1.0.0 -- an open, scalable Earth System Emulator},
+    JOURNAL = {Geoscientific Model Development Discussions},
+    VOLUME = {2021},
+    YEAR = {2021},
+    PAGES = {1--24},
+    URL = {https://gmd.copernicus.org/preprints/gmd-2021-267/},
+    DOI = {10.5194/gmd-2021-267}
+    }
 
 Contributing
 ------------
