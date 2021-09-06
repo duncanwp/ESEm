@@ -153,3 +153,5 @@ cython_debug/
 /local_docs/
 
 .DS_Store
+/docs/generated/
+/docs/examples/video_images/
