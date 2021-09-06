@@ -200,8 +200,6 @@ def _tf_sample(model, prior_x, obs, obs_var, n_samples, mcmc_kwargs, kernel_kwar
 
 @tf.function
 def _target_log_likelihood(prior_x, x, diff, total_sd):
-    # I think doing this inside the tf_function is slowing down the sampling, but I can't
-    #  see any other way of incorporating the emulator uncertainty
     diff_dist = tfd.Independent(
         tfd.Normal(loc=tf.zeros(diff.shape[0], dtype=tf.float64), scale=total_sd),
         reinterpreted_batch_ndims=1, name='model')
@@ -211,7 +209,6 @@ def _target_log_likelihood(prior_x, x, diff, total_sd):
 
 @tf.function
 def _target_log_likelihood_non_independent(prior_x, x, diff, total_sd):
-
     # Sum the probabilities from this (multivariate) distributions
     diff_dist = tfd.Normal(loc=tf.zeros(diff.shape[0], dtype=tf.float64),
                            scale=total_sd)
