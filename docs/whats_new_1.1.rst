@@ -17,4 +17,5 @@ ESEm 1.1 features
 Bugs fixed
 ==========
 
- *
+ * Use tqdm.auto to automatically choose the appropriate progress bar for the context
+ * Fix `plot_validation` handling of masked data
