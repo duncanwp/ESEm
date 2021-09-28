@@ -3,16 +3,10 @@
 Installing ESEm
 ===============
 
-Currently installing ESEm is a two step process. This is because `Iris <https://scitools-iris.readthedocs.io/en/stable/>`_ cannot be installed via pip and installing tensorflow via conda doesn't provide machine level optimisations.
-This is a long-standing issue that is unlikely to be quickly resolved but the steps below should provide a stable environment.
+Using PyPi
+==========
 
-Having installed (mini-) conda - and ideally within a fresh environment - you can easily install Iris with the following command::
-
-    $ conda install -c conda-forge iris
-
-If you don't already have conda, you must first download and install it. Anaconda is a free conda package that includes Python and many common scientific and data analysis libraries, and is available `here <http://continuum.io/downloads>`_. Further documentation on using Anaconda and the features it provides can be found at http://docs.continuum.io/anaconda/index.html.
-
-Now you can pip install esem, this will automatically include tensorflow (with GPU support)::
+It is straightforward to install esem using pip, this will automatically include tensorflow (with GPU support)::
 
     $ pip install esem
 
@@ -23,6 +17,19 @@ Optionally also install GPFlow, keras or scikit-learn ::
 Or ::
 
     $ pip install esem[gpflow,keras,scikit-learn]
+
+Using conda
+===========
+
+In order to make the most of the support for `Iris <https://scitools-iris.readthedocs.io/en/stable/>`_ and `CIS <http://cistools.net/>`_ creating a specific conda environment is recommended.
+If you don't already have conda, you must first download and install it. Anaconda is a free conda package that includes Python and many common scientific and data analysis libraries, and is available `here <http://continuum.io/downloads>`_. Further documentation on using Anaconda and the features it provides can be found at http://docs.continuum.io/anaconda/index.html.
+
+Having installed (mini-) conda - and ideally within a fresh environment - you can easily install CIS (and Iris) with the following command::
+
+    $ conda install -c conda-forge cis
+
+It is then straightforward to install esem in to this environment using pip as above.
+
 
 Dependencies
 ============

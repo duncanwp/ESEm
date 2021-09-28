@@ -10,13 +10,13 @@ fit together.
 Emulation
 =========
 
-We try to provide a seamless interface for users whether they provide iris Cube's or numpy ndarrays. This is
-done using the :class:`esem.cube_wrapper.CubeWrapper` which keeps a copy of the provided cube but only exposes the
-underlying numpy array to the emulation engines. When the data is requested from this wrapper using the
-:meth:`esem.cube_wrapper.CubeWrapper.wrap` method then it will return a copy of the input cube with the data
-replaced by the emulated data, or if no cube was provided then just the data.
+We try to provide a seamless interface for users whether they provide iris Cube's, xarray DataArray's or numpy ndarrays.
+This is done using the :class:`esem.wrappers.DataWrapper` and associated subclasses, which keep a copy of the provided
+object but only exposes the underlying numpy array to the emulation engines. When the data is requested from this wrapper
+using the :meth:`esem.wrappers.DataWrapper.wrap` method then it will return a copy of the input object (Cube or DataArray)
+with the data replaced by the emulated data.
 
-This layer will also ensure the (numpy) data is wrapped in a :class:`esem.cube_wrapper.DataWrapper`. This class
+This layer will also ensure the underlying (numpy) data is wrapped in a :class:`esem.wrappers.ProcessWrapper`. This class
 transparently applies any requested :class:`esem.data_processors.DataProcessor` in sequence.
 
 The user can then create an :class:`esem.emulator.Emulator` object by providing a concrete

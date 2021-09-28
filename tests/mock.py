@@ -151,7 +151,7 @@ def get_mock_model(eval_X=None):
     predict_var = np.ones_like(predict_mean)
 
     class MockModel(ModelAdaptor):
-        def predict(self):
+        def predict(self, x):
             return predict_mean, predict_var
 
         def train(self, training_params, training_data, **kwargs):

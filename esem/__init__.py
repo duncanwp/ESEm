@@ -7,7 +7,7 @@ A package for easily emulating earth systems data
     for new users.
 
 """
-from .cube_wrapper import CubeWrapper
+from .wrappers import wrap_data
 from .data_processors import Recast, Whiten, Reshape as Reshaper, Flatten
 from .emulator import Emulator
 import pkg_resources
@@ -33,7 +33,7 @@ def gp_model(training_params, training_data, data_processors=None,
     ----------
     training_params: DataFrame
         The training parameters
-    training_data: Cube or array_like
+    training_data: xarray.DataArray or iris.Cube or array_like
         The training data - the leading dimension should represent training samples
     data_processors: list of esem.data_processors.DataProcessor
         A list of 'DataProcessor` to apply to the data transparently before training. Model output will be
@@ -69,7 +69,7 @@ def gp_model(training_params, training_data, data_processors=None,
 
     data_processors = data_processors if data_processors is not None else []
     data_processors.extend([Recast(default_float()), Flatten()])
-    data = CubeWrapper(training_data, data_processors=data_processors)
+    wrapped_data = wrap_data(training_data, data_processors=data_processors)
 
     if kernel is None:
         print("WARNING: Using default kernel - be sure you understand the assumptions this implies. "
@@ -82,12 +82,12 @@ def gp_model(training_params, training_data, data_processors=None,
         raise ValueError("Invalid kernel specified: {}".format(kernel))
     # Else, use the user specified kernel
 
-    model = GPFlowModel(gpflow.models.GPR(data=(training_params, data.data_wrapper.data),
+    model = GPFlowModel(gpflow.models.GPR(data=(training_params, wrapped_data.data),
                                           kernel=kernel,
                                           noise_variance=tf.constant(noise_variance,
-                                          dtype=data.dtype)))
+                                          dtype=wrapped_data.dtype)))
 
-    return Emulator(model, training_params, data, name=name, gpu=gpu)
+    return Emulator(model, training_params, wrapped_data, name=name, gpu=gpu)
 
 
 def _get_gpflow_kernel(names, n_params, active_dims=None, operator='add'):
@@ -171,7 +171,7 @@ def cnn_model(training_params, training_data, data_processors=None,
     ----------
     training_params: pd.DataFrame
         The training parameters
-    training_data: iris.cube.Cube or array_like
+    training_data: xarray.DataArray or iris.cube.Cube or array_like
         The training data - the leading dimension should represent training samples
     data_processors: list of esem.data_processors.DataProcessor
         A list of `DataProcessor` to apply to the data transparently before training. Model output will be
@@ -224,12 +224,12 @@ def cnn_model(training_params, training_data, data_processors=None,
     # Add whitening and reshaping processors
     data_processors = data_processors if data_processors is not None else []
     data_processors.extend([Recast(floatx()), Whiten(), Reshaper()])
-    data = CubeWrapper(training_data, data_processors=data_processors)
+    data = wrap_data(training_data, data_processors=data_processors)
 
     # build a simple decoder model
     # NOTE that this assumes the data doesn't get reshaped by the data processors...
     latent_inputs = Input((training_params.shape[1],))
-    intermediate_shape = data.data_wrapper.data.shape[1:-1] + (filters,)
+    intermediate_shape = data.process_wrapper.data.shape[1:-1] + (filters,)
     x = Dense(np.product(intermediate_shape), activation='relu')(latent_inputs)
     x = Reshape(intermediate_shape)(x)
 
@@ -239,7 +239,7 @@ def cnn_model(training_params, training_data, data_processors=None,
                         strides=1,
                         padding='same', data_format='channels_last')(x)
 
-    outputs = Conv2DTranspose(filters=data.data_wrapper.data.shape[-1],
+    outputs = Conv2DTranspose(filters=data.process_wrapper.data.shape[-1],
                               kernel_size=kernel_size,
                               activation=activation,
                               strides=1,
@@ -269,7 +269,7 @@ def rf_model(training_params, training_data, data_processors=None, name='', gpu=
     ----------
     training_params: pd.DataFrame
         The training parameters
-    training_data: iris.cube.Cube or array_like
+    training_data: xarray.DataArray or iris.cube.Cube or array_like
         The training data - the leading dimension should represent training samples
     data_processors: list of esem.data_processors.DataProcessor
         A list of `DataProcessor` to apply to the data transparently before training. Model output will be
@@ -296,6 +296,6 @@ def rf_model(training_params, training_data, data_processors=None, name='', gpu=
     # Add reshaping processor
     data_processors = data_processors if data_processors is not None else []
     data_processors.extend([Flatten()])
-    data = CubeWrapper(training_data, data_processors=data_processors)
+    data = wrap_data(training_data, data_processors=data_processors)
 
     return Emulator(rfmodel, training_params, data, name=name, gpu=gpu)

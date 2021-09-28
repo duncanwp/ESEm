@@ -11,6 +11,7 @@ Welcome to ESEm's documentation!
    :caption: Contents:
 
    installation
+   whats_new
    emulation
    calibration
    examples

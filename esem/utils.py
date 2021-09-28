@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import pandas as pd
 
 
@@ -59,14 +59,13 @@ def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, m
     import matplotlib.pyplot as plt
     if ax is None:
         fig, ax = plt.subplots(1, figsize=figsize)
-    lower, upper, within_95_ci = prediction_within_ci(test_mean, pred_mean, pred_var)
 
     # Deal with input arrays that might be masked
     if isinstance(test_mean, np.ma.MaskedArray):
-        valid_points = test_mean.count()
-        within_95_ci = within_95_ci.compressed()
-    else:
-        valid_points = test_mean.shape[0]
+        test_mean, pred_mean, pred_var = test_mean[~test_mean.mask], pred_mean[~test_mean.mask], pred_var[~test_mean.mask]
+
+    lower, upper, within_95_ci = prediction_within_ci(test_mean, pred_mean, pred_var)
+    valid_points = test_mean.shape[0]
 
     print("Proportion of 'Bad' estimates : {:.2f}%".format(((~within_95_ci).sum()/valid_points)*100.))
 
@@ -196,12 +195,12 @@ def plot_parameter_space(df, nbins=100, target_df=None, smooth=True,
         ax.pcolor(X, Y, vals[:, np.newaxis], vmin=0, vmax=1)
         if target_df is not None:
             ax.plot([0, 1], [target_df[param], target_df[param]], c='r')
-        ax.set_xticks([], [])
+        ax.set_xticks([])
         ax.set_xticklabels('')
         ax.set_xlabel(param, rotation=90)
 
     for ax in axes[1:]:
-        ax.set_yticks([], [])
+        ax.set_yticks([])
         ax.set_yticklabels('')
 
 
@@ -244,17 +243,26 @@ def get_random_params(n_params, n_samples=5):
 
 def ensemble_collocate(ensemble, observations, member_dimension='job'):
     """
-     Efficiently collocate many ensemble members on to a set of (un-gridded) observations
+     Efficiently collocate (interpolate) many ensemble members on to a set of (un-gridded) observations
+
+    Note
+    ----
+    This function requires both Iris and CIS to be installed
 
     Parameters
     ----------
     ensemble: ~cis.data_io.gridded_data.GriddedData
+        The ensemble of (model) samples to interpolate on to the observations
     observations: ~cis.data_io.ungridded_data.UngriddedData
+        The observations on to which the observations will be sampled
     member_dimension: str
+        The name of the dimension which represents the ensemble members in `ensemble`
 
     Returns
     -------
-
+    col_ensemble: iris.cube.Cube
+        The ensemble values interpolated on to the observation locations, with the ensemble members
+        along the leading dimension.
     """
     from iris.cube import Cube, CubeList
     from iris.coords import DimCoord, AuxCoord

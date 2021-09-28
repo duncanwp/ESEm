@@ -1,6 +1,6 @@
 from esem.emulator import Emulator
 from esem.utils import get_uniform_params
-from esem.cube_wrapper import CubeWrapper
+from esem.wrappers import CubeWrapper
 from tests.mock import get_mock_model, get_1d_two_param_cube
 from numpy.testing import assert_array_equal
 from contextlib import nullcontext
@@ -50,10 +50,10 @@ def test_emulator_prediction_cube():
 
     emulator = Emulator(m, params, training_ensemble)
 
-    pred_mean, pred_var = emulator.predict()
+    pred_mean, pred_var = emulator.predict(None)
 
     assert pred_mean.name() == 'Emulated unknown'
     assert pred_var.name() == 'Variance in emulated unknown'
     assert pred_mean.units == training_ensemble.units
-    assert_array_equal(pred_mean.data, m.predict()[0])
+    assert_array_equal(pred_mean.data, m.predict(None)[0])
 
