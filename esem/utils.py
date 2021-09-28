@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+import pandas as pd
 
 
 def add_121_line(ax):
@@ -54,9 +55,10 @@ def prediction_within_ci(test_mean, pred_mean, pred_var, ci=0.95):
     return lower, upper, within
 
 
-def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, miny=None, maxx=None, maxy=None):
+def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, miny=None, maxx=None, maxy=None, ax=None):
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(1, figsize=figsize)
+    if ax is None:
+        fig, ax = plt.subplots(1, figsize=figsize)
     lower, upper, within_95_ci = prediction_within_ci(test_mean, pred_mean, pred_var)
 
     # Deal with input arrays that might be masked
@@ -145,7 +147,10 @@ def validation_plot_bastos(X_test, Y_test, m_test, v_test):
         # Slightly convoluted way to expand the parameters to match the shape of the outputs
         expanded_params = np.broadcast_to(np.expand_dims(X_test.to_numpy()[:, i], axis=[i for i in range(1, len(errors_std.shape))]),
                                           errors_std.shape)
-        axs[0, 1].scatter(expanded_params, errors_std, c=colors[i], label=X_test.columns[i], marker='.', alpha=alpha)
+        if isinstance(X_test, pd.DataFrame):
+            axs[0, 1].scatter(expanded_params, errors_std, c=colors[i], label=X_test.columns[i], marker='.', alpha=alpha)
+        else:
+            axs[0, 1].scatter(expanded_params, errors_std, c=colors[i], label=str(i), marker='.', alpha=alpha)
 
     axs[0, 1].legend()
     axs[0, 1].set_xlabel(r'$\eta_i$')
@@ -159,34 +164,7 @@ def validation_plot_bastos(X_test, Y_test, m_test, v_test):
     axs[0, 0].axhline(y=2, c=c_black, linestyle='--')
     axs[0, 0].axhline(y=0, c=c_black, linestyle='--')
 
-    ax = axs[1, 1]
-    # adapt validation_plot(...) from GCEm package:
-    lower, upper = stats.norm.interval(0.95, loc=m_test, scale=np.sqrt(v_test))
-    bad = (upper < Y_test) | (lower > Y_test)
-    print("Proportion of 'Bad' estimates : {:.2f}%".format((bad.sum()/(~bad).sum())*100.))
-    col = ['r' if b else "k" for b in bad.ravel()]
-
-    # There's no way to set individual colors for errorbar points...
-    #     Pull out the lines and set those, but do the points separately
-    _, _, (vertical_lines,) = ax.errorbar(Y_test, m_test, fmt='none',
-                                          yerr=np.asarray([m_test - lower, upper - m_test]),
-                                          alpha=0.5)
-    ax.scatter(Y_test, m_test, c=col, marker='.', alpha=0.5)
-
-    vertical_lines.set_color(col)
-
-    ax.set_xlabel(r"$Y_{\mathrm{sim}}$")
-    ax.set_ylabel(r"$Y_{\mathrm{emu}}$")
-    add_121_line(ax)
-
-    minx, maxx, miny, maxy = None, None, None, None
-    minx = minx if minx is not None else Y_test.min() - 0.05
-    maxx = maxx if maxx is not None else Y_test.max() + 0.05
-    miny = miny if miny is not None else lower.min() - 0.05
-    maxy = maxy if maxy is not None else upper.max() + 0.05
-
-    ax.set_xlim([min(minx, miny), max(maxx, maxy)])
-    ax.set_ylim([min(minx, miny), max(maxx, maxy)])
+    validation_plot(Y_test, m_test, v_test, ax=axs[1, 1])
 
 
 def plot_parameter_space(df, nbins=100, target_df=None, smooth=True,
