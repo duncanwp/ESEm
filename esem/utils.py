@@ -96,12 +96,6 @@ def validation_plot_bastos(X_test, Y_test, m_test, v_test):
     """
     Validation plot following Bastos and O'Hagan (2009)
 
-    Args:
-        X: input data along the dimensions of the emulator
-        Y: simulated output
-        m: emulated output
-        v: variance of emulator
-
     Source:
         Bastos and O'Hagan (2009): Diagnostics for Gaussian Process Emulators, Technometrics,
         51, 425-438. https://doi.org/10.1198/TECH.2009.08019
@@ -109,6 +103,19 @@ def validation_plot_bastos(X_test, Y_test, m_test, v_test):
 
     Author:
         Ulrike Proske (ulrike.proske@env.ethz.ch)
+
+
+    Parameters
+    ----------
+    X_test : array-like of shape (n_samples, n_features)
+            Input data 
+    Y_test : array-like of shape (n_samples,)
+            Simulated output
+    m_test : array-like of shape (n_samples, n_features)
+            Emulator output
+    v_test : array-like of shape (n_samples,)
+            Variance of emulator
+
     """
 
     import matplotlib.pyplot as plt
