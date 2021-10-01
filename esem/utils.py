@@ -94,7 +94,19 @@ def validation_plot(test_mean, pred_mean, pred_var, figsize=(7, 7), minx=None, m
 
 def validation_plot_bastos(X_test, Y_test, m_test, v_test):
     """
-    Validation plot following Bastos and O'Hagan (2009)
+    Produces a 2x2 matrix plot of the leave-1-out-validation of the emulator according to Bastos and O’Hagan (2009). 
+    
+    Each point corresponds to the training of the emulator on all points except one and then testing on exactly that point. 
+    Individual standardized errors are plotted against:
+     - top left: emulator output
+     - top right: input parameters
+     - bottom left: QQ-plot of the individual standardized errors against a student-T distribution
+    
+    In addition, the bottom right plot shows the emulator against model output, with the error bars indicating the 95% confidence interval on the emulator predictions. 
+    Predictions for which the model result lies outside that interval are marked red. For this subplot the :func:`validation_plot` is used.
+    The dashed lines in the top row plots are drawn at an individual standardized error of zero and 2, which is the threshold discussed in Bastos and O’Hagan (2009).
+    
+    Example usage and interpretation of this plot can be found in Proske et al. (2021)
 
     Source:
         Bastos and O'Hagan (2009): Diagnostics for Gaussian Process Emulators, Technometrics,
@@ -310,7 +322,7 @@ def leave_one_out(Xdata, Ydata, model='RandomForest', **model_kwargs):
     Returns
     ----------
     output: list of n_samples (truth, prediction, variance) tuples 
-            which can then be passed to esem.utils.validation_plot()
+            which can then be passed to :func:`validation_plot`
     """
     from esem import rf_model
     from esem import gp_model
