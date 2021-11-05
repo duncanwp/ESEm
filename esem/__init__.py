@@ -22,7 +22,7 @@ except Exception:
 
 def gp_model(training_params, training_data, data_processors=None,
              kernel=None, kernel_op='add', active_dims=None, noise_variance=1.,
-             name='', gpu=0):
+             name='', gpu=0, **kwargs):
     """
     Create a Gaussian process (GP) based emulator with provided `training_params` (X) and `training_data` (Y) which
     assumes independent inputs (and outputs).
@@ -52,6 +52,8 @@ def gp_model(training_params, training_data, data_processors=None,
         An optional name for the emulator
     gpu: int
         The GPU to use (only applicable for multi-GPU) machines
+    kwargs: dict
+        Dict of optional keyword arguments for `gpflow.models.GPR`, e.g., `mean_function`
 
     Returns
     -------
@@ -85,7 +87,7 @@ def gp_model(training_params, training_data, data_processors=None,
     model = GPFlowModel(gpflow.models.GPR(data=(training_params, wrapped_data.data),
                                           kernel=kernel,
                                           noise_variance=tf.constant(noise_variance,
-                                          dtype=wrapped_data.dtype)))
+                                          dtype=wrapped_data.dtype), **kwargs))
 
     return Emulator(model, training_params, wrapped_data, name=name, gpu=gpu)
 
@@ -279,9 +281,9 @@ def rf_model(training_params, training_data, data_processors=None, name='', gpu=
     gpu: int
         The GPU to use (only applicable for multi-GPU) machines
     args: list
-        List of optional arguments for sklearn.ensemble.RandomForestRegressor
+        List of optional arguments for `sklearn.ensemble.RandomForestRegressor`
     kwargs: dict
-        Dict of optional keyword arguments for sklearn.ensemble.RandomForestRegressor
+        Dict of optional keyword arguments for `sklearn.ensemble.RandomForestRegressor`
 
     Returns
     -------
