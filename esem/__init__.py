@@ -213,6 +213,7 @@ def cnn_model(training_params, training_data, data_processors=None,
     from tensorflow.keras.layers import Dense, Input, Reshape, Conv2DTranspose
     from tensorflow.keras.models import Model
     from tensorflow.keras.optimizers import Adam, RMSprop
+    from tensorflow.keras.optimizers.schedules import ExponentialDecay
     from tensorflow.keras.backend import floatx
     import numpy as np
 
@@ -249,7 +250,13 @@ def cnn_model(training_params, training_data, data_processors=None,
 
     # instantiate decoder model
     decoder = Model(latent_inputs, outputs, name='decoder')
-    decoder.compile(optimizer=optimizer(learning_rate=learning_rate, decay=decay), loss=loss)
+
+    lr_schedule = ExponentialDecay(
+        initial_learning_rate=learning_rate,
+        decay_steps=10000,
+        decay_rate=decay)
+
+    decoder.compile(optimizer=optimizer(learning_rate=lr_schedule), loss=loss)
 
     model = KerasModel(decoder)
 
