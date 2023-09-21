@@ -2,4 +2,4 @@
 wget https://zenodo.org/record/7064308/files/test.tar.gz
 tar -xzf test.tar.gz -C docs/examples/
 wget https://zenodo.org/record/7064308/files/train_val.tar.gz
-tar -xzf train.tar.gz -C docs/examples/
+tar -xzf train_val.tar.gz -C docs/examples/
