@@ -490,3 +490,118 @@ class TestABCSampler2D:
         valid_samples = sampler.sample(n_samples=100, tolerance=0., threshold=2.)
 
         assert valid_samples.shape == (100, 3)
+
+
+class TestABCSamplerScalar:
+
+    def setup_method(self):
+        self.training_params = get_uniform_params(2)
+        self.training_ensemble = get_0d_two_param_cube(self.training_params)
+
+        self.m = gp_model(self.training_params, self.training_ensemble)
+        self.m.train()
+
+    def test_implausibility_scalar_uncertainty_interface(self):
+        # Test the interface correctly deals with 2d model and obs
+
+        obs_uncertainty = 5.
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data.mean(),
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        expected_shape = (len(self.training_params), ) + obs.shape
+        assert implausibility.shape == expected_shape
+
+    def test_implausibility_vector_uncertainty(self):
+        # Test with a vector obs uncertainty
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        implausibility = sampler.get_implausibility(self.training_params)
+
+        expected_shape = (len(self.training_params),) + obs.shape
+        assert implausibility.shape == expected_shape
+
+    def test_batch_constrain(self):
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        valid_samples = sampler.batch_constrain(self.training_params,
+                                                tolerance=0., threshold=2.)
+
+        expected_shape = (len(self.training_params),)
+        assert valid_samples.shape == expected_shape
+
+    def test_batch_constrain_with_batch(self):
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy().data + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Calculate the implausbility of the training points from a perturbed
+        #  training point. The emulator variance should be zero making testing
+        #  easier.
+        valid_samples = sampler.batch_constrain(self.training_params,
+                                                tolerance=0., threshold=2., batch_size=5)
+
+        expected_shape = (len(self.training_params),)
+        assert valid_samples.shape == expected_shape
+
+
+    def test_sample(self):
+        # Test that batch constrain returns the correct boolean array for
+        #  the given model, obs and params
+        obs_uncertainty = self.training_ensemble.data.std(axis=0)
+
+        # Perturbing the obs by one sd should lead to an implausibility of 1.
+        obs = self.training_ensemble[10].copy() + obs_uncertainty
+
+        sampler = ABCSampler(self.m, obs,
+                             obs_uncertainty=obs_uncertainty/obs.data,
+                             interann_uncertainty=0.,
+                             repres_uncertainty=0.,
+                             struct_uncertainty=0.)
+
+        # Generate only valid samples
+        valid_samples = sampler.sample(n_samples=100, tolerance=0., threshold=2.)
+
+        assert valid_samples.shape == (100, 2)

@@ -92,6 +92,29 @@ def get_1d_two_param_cube(params=None, n_samples=10):
     return ensemble
 
 
+def get_0d_two_param_cube(params=None, n_samples=10):
+    """
+    Create an ensemble of 1d cubes perturbed over two idealised parameter
+    spaces. One of params or n_samples must be provided
+    :param np.array params: A list of params to sample the ensemble over
+    :param int n_samples: The number of params to sample (between 0. and 1.)
+    :return:
+    """
+    from iris.cube import CubeList
+
+    if params is None:
+        params = np.linspace(np.zeros((2,)), np.ones((2,)), n_samples)
+
+    cubes = CubeList([])
+    for j, p in enumerate(params):
+        c = make_dummy_1d_cube(j)[:, 1]
+        # Perturb base data to represent some change in a parameter
+        c.data *= simple_polynomial_fn_two_param(*p)
+        cubes.append(c)
+
+    ensemble = cubes.concatenate_cube()
+    return ensemble
+
 def get_three_param_cube(params=None, n_samples=10, **kwargs):
     """
     Create an ensemble of 2d cubes perturbed over three idealised parameter
