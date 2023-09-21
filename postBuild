@@ -1,0 +1,5 @@
+#!/bin/bash
+wget https://zenodo.org/record/7064308/files/test.tar.gz?download=1
+tar -xzf test.tar.gz -C docs/examples/
+wget https://zenodo.org/record/7064308/files/train_val.tar.gz?download=1
+tar -xzf train.tar.gz -C docs/examples/
