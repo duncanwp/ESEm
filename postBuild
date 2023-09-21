@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir -p docs/examples/ClimateBench/
 wget https://zenodo.org/record/7064308/files/test.tar.gz
 tar -xzf test.tar.gz -C docs/examples/ClimateBench/
 wget https://zenodo.org/record/7064308/files/train_val.tar.gz
