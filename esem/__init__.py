@@ -84,7 +84,7 @@ def gp_model(training_params, training_data, data_processors=None,
         raise ValueError("Invalid kernel specified: {}".format(kernel))
     # Else, use the user specified kernel
 
-    model = GPFlowModel(gpflow.models.GPR(data=(training_params, wrapped_data.data),
+    model = GPFlowModel(gpflow.models.GPR(data=(training_params.values, wrapped_data.data),
                                           kernel=kernel,
                                           noise_variance=tf.constant(noise_variance,
                                           dtype=wrapped_data.dtype), **kwargs))
