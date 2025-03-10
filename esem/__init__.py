@@ -31,7 +31,7 @@ def gp_model(training_params, training_data, data_processors=None,
 
     Parameters
     ----------
-    training_params: DataFrame
+    training_params: DataFrame or array_like
         The training parameters
     training_data: xarray.DataArray or iris.Cube or array_like
         The training data - the leading dimension should represent training samples
@@ -84,7 +84,9 @@ def gp_model(training_params, training_data, data_processors=None,
         raise ValueError("Invalid kernel specified: {}".format(kernel))
     # Else, use the user specified kernel
 
-    model = GPFlowModel(gpflow.models.GPR(data=(training_params.values, wrapped_data.data),
+    training_params_data = training_params.values if hasattr(training_params, 'values') else training_params
+
+    model = GPFlowModel(gpflow.models.GPR(data=(training_params_data, wrapped_data.data),
                                           kernel=kernel,
                                           noise_variance=tf.constant(noise_variance,
                                           dtype=wrapped_data.dtype), **kwargs))
