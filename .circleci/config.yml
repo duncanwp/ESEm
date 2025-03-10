@@ -13,7 +13,7 @@ jobs:
       - run: conda config --add channels conda-forge
       - run: conda config --set always_yes true
       - run: conda config --set quiet true
-      - run: conda install iris xarray
+      - run: mamba install iris xarray
       - run: pip install -r tests_requirements.txt
       - run: mkdir -p test_results/all_tests
       - run:
