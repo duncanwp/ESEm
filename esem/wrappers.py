@@ -143,7 +143,7 @@ class DataArrayWrapper(DataWrapper):
         super(DataArrayWrapper, self).__init__(data, data_processors)
 
     def name(self):
-        return self.dataarray.name
+        return self.dataarray.name or ""
 
     def wrap(self, data, name_prefix='Emulated '):
         """
